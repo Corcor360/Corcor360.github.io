@@ -136,6 +136,28 @@
         font-size: 0.9rem;
       }
 
+      .status {
+        margin-top: 0.8rem;
+        margin-bottom: 0;
+        padding: 0.55rem 0.7rem;
+        border-radius: 9px;
+        border: 1px solid #bfd2c4;
+        background: #eef5f0;
+        font-size: 0.9rem;
+      }
+
+      .status.error {
+        border-color: #c98080;
+        background: #faecec;
+        color: #6b1e1e;
+      }
+
+      .status.success {
+        border-color: #8db59f;
+        background: #e8f4ec;
+        color: #1f4b32;
+      }
+
       @media (max-width: 720px) {
         .page {
           margin: 1rem auto;
@@ -181,48 +203,272 @@
         </table>
       </div>
 
+      <p id="status-message" class="status" role="status" aria-live="polite">
+        Loading tracker data...
+      </p>
+
       <p class="note">Ranks are displayed from 1 to 100.</p>
     </main>
 
     <script>
       const tableBody = document.getElementById("tracker-body");
-      const days = [
+      const statusMessage = document.getElementById("status-message");
+      const csvUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQOJi45FrVzpw00_C8KsQ_qXgYKvhULP_GzqHSKZCIrf0eWPqc3QwLoudLlzfVIvwcAYCNf8JkpAk46/pub?output=csv";
+      const expectedColumns = [
+        "rank",
+        "username",
         "monday",
         "tuesday",
         "wednesday",
         "thursday",
         "friday",
         "saturday",
+        "daily average",
+        "total score",
       ];
 
-      function makeScore(rank, dayIndex) {
-        // Create deterministic sample values for a stable leaderboard.
-        const base = 130 - rank;
-        const variation = ((rank * 11 + dayIndex * 17) % 29) - 14;
-        return Math.max(0, base + variation);
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status";
+        if (type) {
+          statusMessage.classList.add(type);
+        }
       }
 
-      for (let rank = 1; rank <= 100; rank += 1) {
-        const row = document.createElement("tr");
-        const username = `user_${String(rank).padStart(3, "0")}`;
+      function normalizeHeader(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, "");
+      }
 
-        const scores = days.map((_, dayIndex) => makeScore(rank, dayIndex));
-        const total = scores.reduce((sum, score) => sum + score, 0);
-        const average = (total / scores.length).toFixed(2);
+      function parseCsvLine(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
 
-        const cells = [rank, username, ...scores, average, total];
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
 
-        cells.forEach((value, index) => {
-          const cell = document.createElement("td");
-          cell.textContent = value;
-          if (index === 1) {
-            cell.className = "name-col";
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
           }
-          row.appendChild(cell);
-        });
 
-        tableBody.appendChild(row);
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
       }
+
+      function parseCsv(text) {
+        return text
+          .split(/\r?\n/)
+          .filter((line) => line.trim() !== "")
+          .map((line) => parseCsvLine(line).map((cell) => cell.trim()));
+      }
+
+      function toNumber(value) {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        const normalized = String(value).replace(/,/g, "").trim();
+        if (normalized === "") {
+          return null;
+        }
+        const num = Number(normalized);
+        return Number.isFinite(num) ? num : null;
+      }
+
+      function buildHeaderMap(headerRow) {
+        const normalizedHeader = headerRow.map((value) =>
+          normalizeHeader(value),
+        );
+        const aliases = {
+          rank: ["rank"],
+          username: ["username", "user", "name"],
+          monday: ["monday", "mon"],
+          tuesday: ["tuesday", "tue", "tues"],
+          wednesday: ["wednesday", "wed"],
+          thursday: ["thursday", "thu", "thur", "thurs"],
+          friday: ["friday", "fri"],
+          saturday: ["saturday", "sat"],
+          "daily average": ["dailyaverage", "average", "avg"],
+          "total score": ["totalscore", "total"],
+        };
+
+        const map = {};
+
+        for (const key of expectedColumns) {
+          const aliasList = aliases[key] || [key];
+          map[key] = normalizedHeader.findIndex((headerName) =>
+            aliasList.includes(headerName),
+          );
+        }
+
+        return map;
+      }
+
+      function getValue(cells, index) {
+        if (index < 0 || index >= cells.length) {
+          return "";
+        }
+        return cells[index] || "";
+      }
+
+      function renderRows(rows) {
+        tableBody.innerHTML = "";
+
+        rows.forEach((rowData) => {
+          const row = document.createElement("tr");
+
+          rowData.forEach((value, index) => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            if (index === 1) {
+              cell.className = "name-col";
+            }
+            row.appendChild(cell);
+          });
+
+          tableBody.appendChild(row);
+        });
+      }
+
+      async function loadTrackerData() {
+        try {
+          const response = await fetch(csvUrl, { cache: "no-store" });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const csvText = await response.text();
+          const parsed = parseCsv(csvText);
+
+          if (parsed.length < 2) {
+            throw new Error("CSV is empty or missing data rows.");
+          }
+
+          const headerMap = buildHeaderMap(parsed[0]);
+
+          if (headerMap.username === -1) {
+            throw new Error("CSV must include a Username column.");
+          }
+
+          const dataRows = [];
+
+          for (let i = 1; i < parsed.length; i += 1) {
+            const cells = parsed[i];
+            const hasAnyValue = cells.some((value) => value.trim() !== "");
+            if (!hasAnyValue) {
+              continue;
+            }
+
+            const username = getValue(cells, headerMap.username);
+            const monday = getValue(cells, headerMap.monday);
+            const tuesday = getValue(cells, headerMap.tuesday);
+            const wednesday = getValue(cells, headerMap.wednesday);
+            const thursday = getValue(cells, headerMap.thursday);
+            const friday = getValue(cells, headerMap.friday);
+            const saturday = getValue(cells, headerMap.saturday);
+
+            let dailyAverage = getValue(cells, headerMap["daily average"]);
+            let totalScore = getValue(cells, headerMap["total score"]);
+
+            const dayNumbers = [
+              toNumber(monday),
+              toNumber(tuesday),
+              toNumber(wednesday),
+              toNumber(thursday),
+              toNumber(friday),
+              toNumber(saturday),
+            ];
+            const validDayNumbers = dayNumbers.filter(
+              (value) => value !== null,
+            );
+
+            if (!dailyAverage && validDayNumbers.length > 0) {
+              const sum = validDayNumbers.reduce(
+                (acc, value) => acc + value,
+                0,
+              );
+              dailyAverage = (sum / validDayNumbers.length).toFixed(2);
+            }
+
+            if (!totalScore && validDayNumbers.length > 0) {
+              totalScore = String(
+                validDayNumbers.reduce((acc, value) => acc + value, 0),
+              );
+            }
+
+            const computedWeeklyTotal =
+              toNumber(totalScore) ??
+              validDayNumbers.reduce((acc, value) => acc + value, 0);
+
+            dataRows.push({
+              username,
+              monday,
+              tuesday,
+              wednesday,
+              thursday,
+              friday,
+              saturday,
+              dailyAverage,
+              totalScore,
+              weeklyTotal: computedWeeklyTotal,
+            });
+          }
+
+          if (dataRows.length === 0) {
+            throw new Error("No valid rows found in the CSV.");
+          }
+
+          dataRows.sort((a, b) => b.weeklyTotal - a.weeklyTotal);
+
+          const rankedRows = dataRows
+            .slice(0, 100)
+            .map((row, index) => [
+              index + 1,
+              row.username,
+              row.monday,
+              row.tuesday,
+              row.wednesday,
+              row.thursday,
+              row.friday,
+              row.saturday,
+              row.dailyAverage,
+              row.totalScore,
+            ]);
+
+          renderRows(rankedRows);
+          setStatus(
+            `Loaded ${rankedRows.length} rows, sorted by weekly total. Rank is auto-generated 1-100. Refresh page to fetch latest updates.`,
+            "success",
+          );
+        } catch (error) {
+          tableBody.innerHTML = "";
+          setStatus(
+            `Unable to load tracker data from Google Sheets. ${error.message}`,
+            "error",
+          );
+        }
+      }
+
+      loadTrackerData();
     </script>
   </body>
 </html>
