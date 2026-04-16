@@ -6,6 +6,8 @@
   --accent-soft: #dce8e2;
   --line: #96a99b;
   --card: #ffffffd9;
+  --row-odd: #fbfdf9;
+  --row-hover: #ecf4ee;
 }
 
 * {
@@ -96,6 +98,7 @@ thead th {
   background: var(--accent-soft);
   color: #183329;
   font-size: 0.95rem;
+  z-index: 3;
 }
 
 th,
@@ -107,17 +110,45 @@ td {
   white-space: nowrap;
 }
 
+thead th:nth-child(2),
+tbody td:nth-child(2) {
+  position: sticky;
+  left: 0;
+}
+
+tbody td:nth-child(2) {
+  background: #fff;
+  z-index: 1;
+}
+
+thead th:nth-child(2) {
+  z-index: 4;
+}
+
+thead th:nth-child(2),
+tbody td:nth-child(2) {
+  box-shadow: 1px 0 0 #c9d6cc;
+}
+
 th:last-child,
 td:last-child {
   border-right: 0;
 }
 
 tbody tr:nth-child(odd) {
-  background: #fbfdf9;
+  background: var(--row-odd);
 }
 
 tbody tr:hover {
-  background: #ecf4ee;
+  background: var(--row-hover);
+}
+
+tbody tr:nth-child(odd) td:nth-child(2) {
+  background: var(--row-odd);
+}
+
+tbody tr:hover td:nth-child(2) {
+  background: var(--row-hover);
 }
 
 .name-col {
