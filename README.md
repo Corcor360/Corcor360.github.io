@@ -6,6 +6,18 @@ This repository contains the Corcor360 website.
 
 The website is designed to function on GitHub Pages and is structured for direct hosting from this repository.
 
+## Train Tracker
+
+The train tracker page at `train-tracker.html` loads data from this published Google Sheets CSV URL:
+
+`https://docs.google.com/spreadsheets/d/e/2PACX-1vQU6Du4tIuOoUGSLdggDJE1cA00Hs_Ujj1XcmSIklAEJyYLBFCYlreSW0ccCLSc6yN_r3WCB1FFSP9z/pub?output=csv`
+
+Expected CSV columns:
+
+- `Date`
+- `Conductor`
+- `VIP`
+
 ## VS Archive Manual CSV Workflow
 
 The archive page at `vs-archive.html` loads data from `data/vs-archive/manifest.json`.
