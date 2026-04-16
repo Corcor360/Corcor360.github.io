@@ -38,6 +38,48 @@
       .train-table td.name-col {
         text-align: center;
       }
+
+      .train-table {
+        min-width: 0;
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      .train-table th,
+      .train-table td {
+        white-space: normal;
+        padding: 0.45rem 0.4rem;
+      }
+
+      .train-table thead th:nth-child(2),
+      .train-table tbody td:nth-child(2) {
+        position: static;
+        left: auto;
+        box-shadow: none;
+      }
+
+      .train-table th:nth-child(1),
+      .train-table td:nth-child(1) {
+        width: 30%;
+      }
+
+      .train-table th:nth-child(2),
+      .train-table td:nth-child(2) {
+        width: 35%;
+      }
+
+      .train-table th:nth-child(3),
+      .train-table td:nth-child(3) {
+        width: 35%;
+      }
+
+      @media (max-width: 720px) {
+        .train-table th,
+        .train-table td {
+          padding: 0.35rem 0.3rem;
+          font-size: 0.82rem;
+        }
+      }
     </style>
   </head>
   <body>
