@@ -80,6 +80,33 @@ h1 {
   margin-bottom: 1rem;
 }
 
+.archive-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.archive-controls label {
+  font-weight: 700;
+}
+
+.archive-controls select {
+  min-width: min(420px, 75vw);
+  max-width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #8ca595;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.archive-controls select:disabled {
+  color: #6a756d;
+  background: #f0f3f1;
+}
+
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--line);
@@ -204,6 +231,11 @@ tbody tr:hover td:nth-child(2) {
   .page {
     margin: 1rem auto;
     padding: 0.8rem;
+  }
+
+  .archive-controls {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   th,
