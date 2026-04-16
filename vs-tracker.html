@@ -13,8 +13,10 @@
         <a class="back-link" href="index.html">Back to Home</a>
       </div>
       <p class="subtitle">
-        10-column tracker: Rank, Username, Monday-Saturday, Daily Average, and
-        Total Score.
+        Conditional formatting legend: <span class="score-red">Red</span> =
+        Below 3,600,000 points, <span class="score-orange">Orange</span> =
+        3,600,000 to 7,200,000 points, <span class="score-green">Green</span> =
+        7,200,000+ points.
       </p>
 
       <div class="table-wrap">
@@ -23,12 +25,12 @@
             <tr>
               <th>Rank</th>
               <th>Username</th>
-              <th>Monday</th>
-              <th>Tuesday</th>
-              <th>Wednesday</th>
-              <th>Thursday</th>
-              <th>Friday</th>
-              <th>Saturday</th>
+              <th>Radar</th>
+              <th>Construction</th>
+              <th>Tech</th>
+              <th>Hero</th>
+              <th>Mobilization</th>
+              <th>Buster</th>
               <th>Daily Average</th>
               <th>Total Score</th>
             </tr>
@@ -52,12 +54,12 @@
       const expectedColumns = [
         "rank",
         "username",
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
+        "radar",
+        "construction",
+        "tech",
+        "hero",
+        "mobilization",
+        "buster",
         "daily average",
         "total score",
       ];
@@ -127,6 +129,24 @@
         return Number.isFinite(num) ? num : null;
       }
 
+      function formatScore(value, fractionDigits = null, roundUp = false) {
+        const numericValue = toNumber(value);
+        if (numericValue === null) {
+          return value;
+        }
+
+        const displayValue = roundUp ? Math.ceil(numericValue) : numericValue;
+
+        if (fractionDigits !== null) {
+          return displayValue.toLocaleString("en-US", {
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits,
+          });
+        }
+
+        return displayValue.toLocaleString("en-US");
+      }
+
       function buildHeaderMap(headerRow) {
         const normalizedHeader = headerRow.map((value) =>
           normalizeHeader(value),
@@ -134,12 +154,12 @@
         const aliases = {
           rank: ["rank"],
           username: ["username", "user", "name"],
-          monday: ["monday", "mon"],
-          tuesday: ["tuesday", "tue", "tues"],
-          wednesday: ["wednesday", "wed"],
-          thursday: ["thursday", "thu", "thur", "thurs"],
-          friday: ["friday", "fri"],
-          saturday: ["saturday", "sat"],
+          radar: ["radar", "monday", "mon"],
+          construction: ["construction", "tuesday", "tue", "tues"],
+          tech: ["tech", "wednesday", "wed"],
+          hero: ["hero", "thursday", "thu", "thur", "thurs"],
+          mobilization: ["mobilization", "friday", "fri"],
+          buster: ["buster", "saturday", "sat"],
           "daily average": ["dailyaverage", "average", "avg"],
           "total score": ["totalscore", "total"],
         };
@@ -250,23 +270,23 @@
             }
 
             const username = getValue(cells, headerMap.username);
-            const monday = getValue(cells, headerMap.monday);
-            const tuesday = getValue(cells, headerMap.tuesday);
-            const wednesday = getValue(cells, headerMap.wednesday);
-            const thursday = getValue(cells, headerMap.thursday);
-            const friday = getValue(cells, headerMap.friday);
-            const saturday = getValue(cells, headerMap.saturday);
+            const radar = getValue(cells, headerMap.radar);
+            const construction = getValue(cells, headerMap.construction);
+            const tech = getValue(cells, headerMap.tech);
+            const hero = getValue(cells, headerMap.hero);
+            const mobilization = getValue(cells, headerMap.mobilization);
+            const buster = getValue(cells, headerMap.buster);
 
             let dailyAverage = getValue(cells, headerMap["daily average"]);
             let totalScore = getValue(cells, headerMap["total score"]);
 
             const dayNumbers = [
-              toNumber(monday),
-              toNumber(tuesday),
-              toNumber(wednesday),
-              toNumber(thursday),
-              toNumber(friday),
-              toNumber(saturday),
+              toNumber(radar),
+              toNumber(construction),
+              toNumber(tech),
+              toNumber(hero),
+              toNumber(mobilization),
+              toNumber(buster),
             ];
             const validDayNumbers = dayNumbers.filter(
               (value) => value !== null,
@@ -292,12 +312,12 @@
 
             dataRows.push({
               username,
-              monday,
-              tuesday,
-              wednesday,
-              thursday,
-              friday,
-              saturday,
+              radar,
+              construction,
+              tech,
+              hero,
+              mobilization,
+              buster,
               dailyAverage,
               totalScore,
               weeklyTotal: computedWeeklyTotal,
@@ -315,14 +335,14 @@
             .map((row, index) => [
               index + 1,
               row.username,
-              row.monday,
-              row.tuesday,
-              row.wednesday,
-              row.thursday,
-              row.friday,
-              row.saturday,
-              row.dailyAverage,
-              row.totalScore,
+              row.radar,
+              row.construction,
+              row.tech,
+              row.hero,
+              row.mobilization,
+              row.buster,
+              formatScore(row.dailyAverage, null, true),
+              formatScore(row.totalScore),
             ]);
 
           renderRows(rankedRows);
