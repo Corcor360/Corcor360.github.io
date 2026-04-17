@@ -47,6 +47,19 @@
         </select>
       </div>
 
+      <div
+        class="stats-toggle"
+        role="group"
+        aria-label="Visualização de estatísticas"
+      >
+        <button id="btn-special" class="stats-toggle-btn active" type="button">
+          Evento especial
+        </button>
+        <button id="btn-alltime" class="stats-toggle-btn" type="button">
+          Todos os tempos
+        </button>
+      </div>
+
       <section class="stats-section" aria-label="Estatísticas do Train tracker">
         <div class="table-wrap">
           <table
@@ -100,6 +113,7 @@
       const ignoreListUrl = "../data/train-tracker-ignore.json";
       const expectedColumns = ["date", "conductor", "vip"];
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
+      const SPECIAL_EVENT_CUTOFF = Date.UTC(2026, 3, 5); // April 5, 2026
       const LOCALE = "pt-BR";
       const MESSAGES = {
         loading: "Carregando dados do train tracker...",
@@ -503,13 +517,37 @@
           });
 
           const ignoredUsers = await loadIgnoredUsers();
-          const statsRows = buildUserStats(normalizedRows, ignoredUsers);
-          renderStatsRows(statsRows);
+          const allTimeStats = buildUserStats(normalizedRows, ignoredUsers);
+          const specialEventRows = normalizedRows.filter(
+            (r) => r.timestamp !== null && r.timestamp >= SPECIAL_EVENT_CUTOFF,
+          );
+          const specialEventStats = buildUserStats(
+            specialEventRows,
+            ignoredUsers,
+          );
+
+          renderStatsRows(specialEventStats);
           renderRows(normalizedRows.map((entry) => entry.row));
           setStatus(
-            MESSAGES.loaded(normalizedRows.length, statsRows.length),
+            MESSAGES.loaded(normalizedRows.length, allTimeStats.length),
             "success",
           );
+
+          document
+            .getElementById("btn-special")
+            .addEventListener("click", () => {
+              document.getElementById("btn-special").classList.add("active");
+              document.getElementById("btn-alltime").classList.remove("active");
+              renderStatsRows(specialEventStats);
+            });
+
+          document
+            .getElementById("btn-alltime")
+            .addEventListener("click", () => {
+              document.getElementById("btn-alltime").classList.add("active");
+              document.getElementById("btn-special").classList.remove("active");
+              renderStatsRows(allTimeStats);
+            });
         } catch (error) {
           tableBody.innerHTML = "";
           statsBody.innerHTML = "";
