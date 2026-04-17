@@ -97,6 +97,7 @@
       });
       const csvUrl =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vQU6Du4tIuOoUGSLdggDJE1cA00Hs_Ujj1XcmSIklAEJyYLBFCYlreSW0ccCLSc6yN_r3WCB1FFSP9z/pub?output=csv";
+      const ignoreListUrl = "../data/train-tracker-ignore.json";
       const expectedColumns = ["date", "conductor", "vip"];
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
       const LOCALE = "en-US";
@@ -123,6 +124,12 @@
           .toLowerCase()
           .trim()
           .replace(/[^a-z0-9]/g, "");
+      }
+
+      function normalizeUsername(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase();
       }
 
       function parseCsvLine(line) {
@@ -308,7 +315,7 @@
         return diffDays < 0 ? 0 : diffDays;
       }
 
-      function buildUserStats(rows) {
+      function buildUserStats(rows, ignoredUsers = new Set()) {
         const statsMap = new Map();
 
         function upsertUser(name) {
@@ -371,6 +378,7 @@
             lastTimeDriving: daysSince(stat.lastDriverTimestamp, todayUtcDay),
             lastTimeVip: daysSince(stat.lastVipTimestamp, todayUtcDay),
           }))
+          .filter((stat) => !ignoredUsers.has(normalizeUsername(stat.username)))
           .sort((a, b) => {
             const aDays =
               typeof a.lastTimeDriving === "number"
@@ -412,6 +420,28 @@
 
           statsBody.appendChild(row);
         });
+      }
+
+      async function loadIgnoredUsers() {
+        try {
+          const response = await fetch(ignoreListUrl, { cache: "no-store" });
+          if (!response.ok) {
+            return new Set();
+          }
+
+          const data = await response.json();
+          if (!data || !Array.isArray(data.ignored)) {
+            return new Set();
+          }
+
+          return new Set(
+            data.ignored
+              .map((value) => normalizeUsername(value))
+              .filter((value) => value !== ""),
+          );
+        } catch (error) {
+          return new Set();
+        }
       }
 
       async function loadTrainData() {
@@ -471,7 +501,8 @@
             return a.originalIndex - b.originalIndex;
           });
 
-          const statsRows = buildUserStats(normalizedRows);
+          const ignoredUsers = await loadIgnoredUsers();
+          const statsRows = buildUserStats(normalizedRows, ignoredUsers);
           renderStatsRows(statsRows);
           renderRows(normalizedRows.map((entry) => entry.row));
           setStatus(
