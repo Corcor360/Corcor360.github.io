@@ -60,15 +60,21 @@
         margin-top: 1rem;
       }
 
-      .lang-switch a {
-        margin-top: 0;
-        background: transparent;
+      .lang-switch label {
+        display: block;
+        margin-bottom: 0.4rem;
+        font-weight: 700;
         color: #2f5d50;
       }
 
-      .lang-switch a:hover {
-        background: #2f5d50;
-        color: #fff;
+      .lang-switch select {
+        width: min(280px, 100%);
+        padding: 0.55rem 0.7rem;
+        border-radius: 10px;
+        border: 1px solid #2f5d50;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
       }
     </style>
   </head>
@@ -80,8 +86,20 @@
         <a href="PPLE-Home.html">Ir a PPLE Home</a>
       </div>
       <div class="lang-switch">
-        <a href="../en/index.html" hreflang="en">View in English</a>
+        <label for="language-select">Idioma</label>
+        <select id="language-select" aria-label="Seleccionar idioma">
+          <option value="../en/index.html">English</option>
+          <option value="../es/index.html" selected>Español</option>
+          <option value="../pt/index.html">Português</option>
+        </select>
       </div>
     </main>
+
+    <script>
+      const languageSelect = document.getElementById("language-select");
+      languageSelect.addEventListener("change", (event) => {
+        window.location.href = event.target.value;
+      });
+    </script>
   </body>
 </html>

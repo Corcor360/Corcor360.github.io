@@ -1,9 +1,9 @@
 ﻿<!doctype html>
-<html lang="en">
+<html lang="pt">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VS Tracker Page</title>
+    <title>Página VS Tracker</title>
     <link rel="stylesheet" href="../vs-tracker.css" />
     <style>
       .lang-switch {
@@ -30,38 +30,38 @@
   <body>
     <main class="page">
       <div class="title-row">
-        <h1>VS Tracker Page</h1>
-        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+        <h1>Página VS Tracker</h1>
+        <a class="back-link" href="PPLE-Home.html">Voltar para Home</a>
       </div>
       <p class="subtitle">
-        Conditional formatting legend: <span class="score-red">Red</span> =
-        Below 3,600,000 points, <span class="score-orange">Orange</span> =
-        3,600,000 to 7,200,000 points, <span class="score-green">Green</span> =
-        7,200,000+ points.
+        Legenda de formatação condicional:
+        <span class="score-red">Vermelho</span> = Menos de 3.600.000 pontos,
+        <span class="score-orange">Laranja</span> = 3.600.000 a 7.200.000
+        pontos, <span class="score-green">Verde</span> = 7.200.000+ pontos.
       </p>
       <div class="lang-switch">
-        <label for="language-select">Language</label>
+        <label for="language-select">Idioma</label>
         <select id="language-select" aria-label="Select language">
-          <option value="../en/vs-tracker.html" selected>English</option>
+          <option value="../en/vs-tracker.html">English</option>
           <option value="../es/vs-tracker.html">Español</option>
-          <option value="../pt/vs-tracker.html">Português</option>
+          <option value="../pt/vs-tracker.html" selected>Português</option>
         </select>
       </div>
 
       <div class="table-wrap">
-        <table aria-label="VS tracker rankings">
+        <table aria-label="Classificação do VS tracker">
           <thead>
             <tr>
-              <th scope="col">Rank</th>
-              <th scope="col">Username</th>
+              <th scope="col">Classificação</th>
+              <th scope="col">Nome de usuário</th>
               <th scope="col">Radar</th>
-              <th scope="col">Construction</th>
-              <th scope="col">Tech</th>
-              <th scope="col">Hero</th>
-              <th scope="col">Mobilization</th>
+              <th scope="col">Construção</th>
+              <th scope="col">Tecnologia</th>
+              <th scope="col">Herói</th>
+              <th scope="col">Mobilização</th>
               <th scope="col">Buster</th>
-              <th scope="col">Daily Average</th>
-              <th scope="col">Total Score</th>
+              <th scope="col">Média diária</th>
+              <th scope="col">Pontuação total</th>
             </tr>
           </thead>
           <tbody id="tracker-body"></tbody>
@@ -69,10 +69,10 @@
       </div>
 
       <p id="status-message" class="status" role="status" aria-live="polite">
-        Loading tracker data...
+        Carregando dados do rastreador...
       </p>
 
-      <p class="note">Ranks are displayed from 1 to 100.</p>
+      <p class="note">As classificações são exibidas de 1 a 100.</p>
     </main>
 
     <script>
@@ -96,17 +96,17 @@
         "daily average",
         "total score",
       ];
-      const LOCALE = "en-US";
+      const LOCALE = "pt-BR";
       const MESSAGES = {
-        loading: "Loading tracker data...",
+        loading: "Carregando dados do rastreador...",
         http: (status) => `HTTP ${status}`,
-        csvMissingRows: "CSV is empty or missing data rows.",
-        missingUsername: "CSV must include a Username column.",
-        noValidRows: "No valid rows found in the CSV.",
+        csvMissingRows: "O CSV está vazio ou não tem linhas de dados.",
+        missingUsername: "O CSV deve incluir uma coluna Nome de usuário.",
+        noValidRows: "Nenhuma linha válida encontrada no CSV.",
         loaded: (rowCount) =>
-          `Loaded ${rowCount} rows, sorted by weekly total. Rank is auto-generated 1-100. Refresh page to fetch latest updates.`,
+          `Carregadas ${rowCount} linhas, ordenadas por total semanal. A classificação é gerada automaticamente de 1 a 100. Atualize a página para obter as atualizações mais recentes.`,
         loadError: (message) =>
-          `Unable to load tracker data from Google Sheets. ${message}`,
+          `Não foi possível carregar dados do rastreador do Google Sheets. ${message}`,
       };
 
       function setStatus(message, type) {
@@ -166,10 +166,38 @@
         if (value === null || value === undefined) {
           return null;
         }
-        const normalized = String(value).replace(/,/g, "").trim();
-        if (normalized === "") {
+        const raw = String(value).trim().replace(/\s+/g, "");
+        if (raw === "") {
           return null;
         }
+
+        let normalized = raw;
+        const hasComma = normalized.includes(",");
+        const hasDot = normalized.includes(".");
+
+        if (hasComma && hasDot) {
+          if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+            normalized = normalized.replace(/\./g, "").replace(/,/g, ".");
+          } else {
+            normalized = normalized.replace(/,/g, "");
+          }
+        } else if (hasComma) {
+          const commaParts = normalized.split(",");
+          if (
+            commaParts.length > 2 ||
+            (commaParts.length === 2 && commaParts[1].length === 3)
+          ) {
+            normalized = normalized.replace(/,/g, "");
+          } else {
+            normalized = normalized.replace(/,/g, ".");
+          }
+        } else if (hasDot) {
+          const dotParts = normalized.split(".");
+          if (dotParts.length > 2) {
+            normalized = normalized.replace(/\./g, "");
+          }
+        }
+
         const num = Number(normalized);
         return Number.isFinite(num) ? num : null;
       }

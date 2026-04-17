@@ -4,10 +4,11 @@ This repository contains the Corcor360 website.
 
 ## Localization
 
-The site now supports two languages:
+The site now supports three languages:
 
 - English (default): `en/`
 - Spanish: `es/`
+- Portuguese: `pt/`
 
 Root pages (`index.html`, `PPLE-Home.html`, `train-tracker.html`, `vs-tracker.html`, `vs-archive.html`) redirect to the English versions under `en/`.
 

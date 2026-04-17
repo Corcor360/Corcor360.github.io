@@ -1,10 +1,31 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pagina VS Tracker</title>
     <link rel="stylesheet" href="../vs-tracker.css" />
+    <style>
+      .lang-switch {
+        margin: 0.75rem 0 1.25rem;
+      }
+
+      .lang-switch label {
+        display: inline-block;
+        margin-right: 0.55rem;
+        font-weight: 700;
+      }
+
+      .lang-switch select {
+        width: min(280px, 100%);
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #3d5f56;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
+      }
+    </style>
   </head>
   <body>
     <main class="page">
@@ -18,11 +39,14 @@
         3,600,000 a 7,200,000 puntos, <span class="score-green">Verde</span> =
         7,200,000+ puntos.
       </p>
-      <p class="subtitle">
-        Idioma: Espanol (<a href="../en/vs-tracker.html" hreflang="en"
-          >View in English</a
-        >)
-      </p>
+      <div class="lang-switch">
+        <label for="language-select">Idioma</label>
+        <select id="language-select" aria-label="Select language">
+          <option value="../en/vs-tracker.html">English</option>
+          <option value="../es/vs-tracker.html" selected>Español</option>
+          <option value="../pt/vs-tracker.html">Português</option>
+        </select>
+      </div>
 
       <div class="table-wrap">
         <table aria-label="Clasificacion de VS tracker">
@@ -54,6 +78,10 @@
     <script>
       const tableBody = document.getElementById("tracker-body");
       const statusMessage = document.getElementById("status-message");
+      const languageSelect = document.getElementById("language-select");
+      languageSelect.addEventListener("change", (event) => {
+        window.location.href = event.target.value;
+      });
       const csvUrl =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vQOJi45FrVzpw00_C8KsQ_qXgYKvhULP_GzqHSKZCIrf0eWPqc3QwLoudLlzfVIvwcAYCNf8JkpAk46/pub?output=csv";
       const expectedColumns = [
@@ -404,3 +432,4 @@
     </script>
   </body>
 </html>
+

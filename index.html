@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="refresh" content="0; url=en/index.html" />
+    <meta http-equiv="refresh" content="5; url=en/index.html" />
     <title>Redirecting to English Home</title>
     <style>
       body {
@@ -30,37 +30,50 @@
         text-align: center;
       }
 
-      .actions {
-        display: flex;
-        justify-content: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
+      .lang-switch {
         margin-top: 1rem;
       }
 
-      a {
-        display: inline-block;
-        padding: 0.7rem 1rem;
+      .lang-switch label {
+        display: block;
+        margin-bottom: 0.4rem;
+        font-weight: 700;
+        color: #2f5d50;
+      }
+
+      .lang-switch select {
+        width: min(280px, 100%);
+        padding: 0.55rem 0.7rem;
         border-radius: 10px;
         border: 1px solid #2f5d50;
-        background: #2f5d50;
-        color: #fff;
-        text-decoration: none;
-        font-weight: 700;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
       }
     </style>
-    <script>
-      window.location.replace("en/index.html");
-    </script>
   </head>
   <body>
     <main>
       <h1>Redirecting...</h1>
-      <p>English is the default language. Choose a language below if needed.</p>
-      <div class="actions">
-        <a href="en/index.html" hreflang="en">English</a>
-        <a href="es/index.html" hreflang="es">Espanol</a>
+      <p>
+        English is the default language. Redirecting in 5 seconds, or choose a
+        language below.
+      </p>
+      <div class="lang-switch">
+        <label for="language-select">Language</label>
+        <select id="language-select" aria-label="Select language">
+          <option value="en/index.html" selected>English</option>
+          <option value="es/index.html">Español</option>
+          <option value="pt/index.html">Português</option>
+        </select>
       </div>
     </main>
+
+    <script>
+      const languageSelect = document.getElementById("language-select");
+      languageSelect.addEventListener("change", (event) => {
+        window.location.href = event.target.value;
+      });
+    </script>
   </body>
 </html>

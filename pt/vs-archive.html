@@ -1,9 +1,9 @@
 ﻿<!doctype html>
-<html lang="en">
+<html lang="pt">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VS Tracker Page</title>
+    <title>Arquivo VS</title>
     <link rel="stylesheet" href="../vs-tracker.css" />
     <style>
       .lang-switch {
@@ -30,38 +30,48 @@
   <body>
     <main class="page">
       <div class="title-row">
-        <h1>VS Tracker Page</h1>
-        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+        <h1>Arquivo VS</h1>
+        <a class="back-link" href="PPLE-Home.html">Voltar para Home</a>
       </div>
+
       <p class="subtitle">
-        Conditional formatting legend: <span class="score-red">Red</span> =
-        Below 3,600,000 points, <span class="score-orange">Orange</span> =
-        3,600,000 to 7,200,000 points, <span class="score-green">Green</span> =
-        7,200,000+ points.
+        Selecione uma semana salva. Os arquivos CSV são carregados de
+        <strong>data/vs-archive/</strong> baseado em
+        <strong>data/vs-archive/manifest.json</strong>.
       </p>
       <div class="lang-switch">
-        <label for="language-select">Language</label>
+        <label for="language-select">Idioma</label>
         <select id="language-select" aria-label="Select language">
-          <option value="../en/vs-tracker.html" selected>English</option>
-          <option value="../es/vs-tracker.html">Español</option>
-          <option value="../pt/vs-tracker.html">Português</option>
+          <option value="../en/vs-archive.html">English</option>
+          <option value="../es/vs-archive.html">Español</option>
+          <option value="../pt/vs-archive.html" selected>Português</option>
         </select>
       </div>
 
+      <section
+        class="archive-controls"
+        aria-label="Seletor de período do arquivo"
+      >
+        <label for="week-select">Semana</label>
+        <select id="week-select" disabled>
+          <option value="">Carregando lista do arquivo...</option>
+        </select>
+      </section>
+
       <div class="table-wrap">
-        <table aria-label="VS tracker rankings">
+        <table aria-label="Classificação do arquivo VS">
           <thead>
             <tr>
-              <th scope="col">Rank</th>
-              <th scope="col">Username</th>
+              <th scope="col">Classificação</th>
+              <th scope="col">Nome de usuário</th>
               <th scope="col">Radar</th>
-              <th scope="col">Construction</th>
-              <th scope="col">Tech</th>
-              <th scope="col">Hero</th>
-              <th scope="col">Mobilization</th>
+              <th scope="col">Construção</th>
+              <th scope="col">Tecnologia</th>
+              <th scope="col">Herói</th>
+              <th scope="col">Mobilização</th>
               <th scope="col">Buster</th>
-              <th scope="col">Daily Average</th>
-              <th scope="col">Total Score</th>
+              <th scope="col">Média diária</th>
+              <th scope="col">Pontuação total</th>
             </tr>
           </thead>
           <tbody id="tracker-body"></tbody>
@@ -69,10 +79,10 @@
       </div>
 
       <p id="status-message" class="status" role="status" aria-live="polite">
-        Loading tracker data...
+        Carregando manifesto do arquivo...
       </p>
 
-      <p class="note">Ranks are displayed from 1 to 100.</p>
+      <p class="note">As classificações são exibidas de 1 a 100.</p>
     </main>
 
     <script>
@@ -82,8 +92,11 @@
       languageSelect.addEventListener("change", (event) => {
         window.location.href = event.target.value;
       });
-      const csvUrl =
-        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQOJi45FrVzpw00_C8KsQ_qXgYKvhULP_GzqHSKZCIrf0eWPqc3QwLoudLlzfVIvwcAYCNf8JkpAk46/pub?output=csv";
+      const weekSelect = document.getElementById("week-select");
+      const manifestUrl = "../data/vs-archive/manifest.json";
+      const archiveBasePath = "../data/vs-archive/";
+      const locale = "pt";
+      const numberLocale = "pt-BR";
       const expectedColumns = [
         "rank",
         "username",
@@ -96,17 +109,25 @@
         "daily average",
         "total score",
       ];
-      const LOCALE = "en-US";
       const MESSAGES = {
-        loading: "Loading tracker data...",
+        loadingManifest: "Carregando manifesto do arquivo...",
+        loadingList: "Carregando lista do arquivo...",
+        noEntriesOption: "Sem semanas disponíveis",
+        manifestFailedOption: "Erro ao carregar manifesto",
+        weekLabel: "Semana",
         http: (status) => `HTTP ${status}`,
-        csvMissingRows: "CSV is empty or missing data rows.",
-        missingUsername: "CSV must include a Username column.",
-        noValidRows: "No valid rows found in the CSV.",
-        loaded: (rowCount) =>
-          `Loaded ${rowCount} rows, sorted by weekly total. Rank is auto-generated 1-100. Refresh page to fetch latest updates.`,
-        loadError: (message) =>
-          `Unable to load tracker data from Google Sheets. ${message}`,
+        csvMissingRows: "O CSV está vazio ou não tem linhas de dados.",
+        missingUsername: "O CSV deve incluir uma coluna Nome de usuário.",
+        noValidRows: "Nenhuma linha válida encontrada no CSV.",
+        loadingCsv: (label) => `Carregando ${label}...`,
+        loadedRows: (rowCount, label) =>
+          `Carregadas ${rowCount} linhas para ${label}. A classificação é gerada automaticamente de 1 a 100.`,
+        csvLoadError: (label, message) =>
+          `Não foi possível carregar o CSV para ${label}. ${message}`,
+        noEntriesStatus:
+          "Sem semanas disponíveis. Adicione entradas em data/vs-archive/manifest.json.",
+        manifestLoadError: (message) =>
+          `Não foi possível carregar o manifesto do arquivo. ${message}`,
       };
 
       function setStatus(message, type) {
@@ -166,10 +187,38 @@
         if (value === null || value === undefined) {
           return null;
         }
-        const normalized = String(value).replace(/,/g, "").trim();
-        if (normalized === "") {
+        const raw = String(value).trim().replace(/\s+/g, "");
+        if (raw === "") {
           return null;
         }
+
+        let normalized = raw;
+        const hasComma = normalized.includes(",");
+        const hasDot = normalized.includes(".");
+
+        if (hasComma && hasDot) {
+          if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+            normalized = normalized.replace(/\./g, "").replace(/,/g, ".");
+          } else {
+            normalized = normalized.replace(/,/g, "");
+          }
+        } else if (hasComma) {
+          const commaParts = normalized.split(",");
+          if (
+            commaParts.length > 2 ||
+            (commaParts.length === 2 && commaParts[1].length === 3)
+          ) {
+            normalized = normalized.replace(/,/g, "");
+          } else {
+            normalized = normalized.replace(/,/g, ".");
+          }
+        } else if (hasDot) {
+          const dotParts = normalized.split(".");
+          if (dotParts.length > 2) {
+            normalized = normalized.replace(/\./g, "");
+          }
+        }
+
         const num = Number(normalized);
         return Number.isFinite(num) ? num : null;
       }
@@ -183,13 +232,13 @@
         const displayValue = roundUp ? Math.ceil(numericValue) : numericValue;
 
         if (fractionDigits !== null) {
-          return displayValue.toLocaleString(LOCALE, {
+          return displayValue.toLocaleString(numberLocale, {
             minimumFractionDigits: fractionDigits,
             maximumFractionDigits: fractionDigits,
           });
         }
 
-        return displayValue.toLocaleString(LOCALE);
+        return displayValue.toLocaleString(numberLocale);
       }
 
       function buildHeaderMap(headerRow) {
@@ -284,11 +333,69 @@
         });
       }
 
-      async function loadTrackerData() {
-        setStatus(MESSAGES.loading);
+      function getEntryLabel(entry) {
+        if (entry.labels && typeof entry.labels === "object") {
+          if (
+            typeof entry.labels[locale] === "string" &&
+            entry.labels[locale].trim() !== ""
+          ) {
+            return entry.labels[locale];
+          }
+          if (
+            typeof entry.labels.en === "string" &&
+            entry.labels.en.trim() !== ""
+          ) {
+            return entry.labels.en;
+          }
+        }
+        return typeof entry.label === "string" ? entry.label : "";
+      }
+
+      function getEntryCsvPath(entry) {
+        if (typeof entry.csv !== "string") {
+          return "";
+        }
+        const value = entry.csv.trim();
+        if (!value) {
+          return "";
+        }
+        if (/^https?:\/\//i.test(value)) {
+          return value;
+        }
+        if (value.includes("/")) {
+          return value;
+        }
+        return `${archiveBasePath}${value}`;
+      }
+
+      function isValidManifestEntry(entry) {
+        if (!entry || typeof entry !== "object") {
+          return false;
+        }
+        const label = getEntryLabel(entry);
+        return label !== "" && getEntryCsvPath(entry) !== "";
+      }
+
+      function buildArchiveOptions(entries) {
+        weekSelect.innerHTML = "";
+
+        entries.forEach((entry, index) => {
+          const option = document.createElement("option");
+          option.value = String(index);
+          option.textContent = getEntryLabel(entry);
+          weekSelect.appendChild(option);
+        });
+
+        weekSelect.disabled = entries.length === 0;
+      }
+
+      async function loadArchiveCsv(entry) {
+        const label = getEntryLabel(entry);
+        const csvPath = getEntryCsvPath(entry);
 
         try {
-          const response = await fetch(csvUrl, { cache: "no-store" });
+          setStatus(MESSAGES.loadingCsv(label));
+          const response = await fetch(csvPath, { cache: "no-store" });
 
           if (!response.ok) {
             throw new Error(MESSAGES.http(response.status));
@@ -393,14 +500,59 @@
             ]);
 
           renderRows(rankedRows);
-          setStatus(MESSAGES.loaded(rankedRows.length), "success");
+          setStatus(MESSAGES.loadedRows(rankedRows.length, label), "success");
         } catch (error) {
           tableBody.innerHTML = "";
-          setStatus(MESSAGES.loadError(error.message), "error");
+          setStatus(MESSAGES.csvLoadError(label, error.message), "error");
         }
       }
 
-      loadTrackerData();
+      async function loadArchiveManifest() {
+        setStatus(MESSAGES.loadingManifest);
+
+        try {
+          const response = await fetch(manifestUrl, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(MESSAGES.http(response.status));
+          }
+
+          const manifest = await response.json();
+          if (!Array.isArray(manifest)) {
+            throw new Error("O manifesto deve ser uma lista de entradas.");
+          }
+
+          const validEntries = manifest.filter(isValidManifestEntry);
+
+          if (validEntries.length === 0) {
+            tableBody.innerHTML = "";
+            weekSelect.innerHTML = `<option value="">${MESSAGES.noEntriesOption}</option>`;
+            weekSelect.disabled = true;
+            setStatus(MESSAGES.noEntriesStatus, "error");
+            return;
+          }
+
+          buildArchiveOptions(validEntries);
+
+          weekSelect.addEventListener("change", () => {
+            const entry = validEntries[Number(weekSelect.value)];
+            if (!entry) {
+              return;
+            }
+            loadArchiveCsv(entry);
+          });
+
+          const firstEntry = validEntries[0];
+          weekSelect.value = "0";
+          await loadArchiveCsv(firstEntry);
+        } catch (error) {
+          tableBody.innerHTML = "";
+          weekSelect.innerHTML = `<option value="">${MESSAGES.manifestFailedOption}</option>`;
+          weekSelect.disabled = true;
+          setStatus(MESSAGES.manifestLoadError(error.message), "error");
+        }
+      }
+
+      loadArchiveManifest();
     </script>
   </body>
 </html>

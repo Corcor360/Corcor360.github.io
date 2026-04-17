@@ -1,5 +1,5 @@
 ﻿<!doctype html>
-<html lang="es">
+<html lang="pt">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -32,36 +32,33 @@
     <main class="page">
       <div class="title-row">
         <h1>Train Tracker</h1>
-        <a class="back-link" href="PPLE-Home.html">Volver al inicio</a>
+        <a class="back-link" href="PPLE-Home.html">Voltar para Home</a>
       </div>
 
       <p class="subtitle">
-        Tabla en vivo cargada desde una fuente CSV publicada en Google Sheets.
+        Tabela ao vivo carregada de uma fonte CSV publicada no Google Sheets.
       </p>
       <div class="lang-switch">
         <label for="language-select">Idioma</label>
         <select id="language-select" aria-label="Select language">
           <option value="../en/train-tracker.html">English</option>
-          <option value="../es/train-tracker.html" selected>Español</option>
-          <option value="../pt/train-tracker.html">Português</option>
+          <option value="../es/train-tracker.html">Español</option>
+          <option value="../pt/train-tracker.html" selected>Português</option>
         </select>
       </div>
 
-      <section
-        class="stats-section"
-        aria-label="Estadisticas del Train tracker"
-      >
+      <section class="stats-section" aria-label="Estatísticas do Train tracker">
         <div class="table-wrap">
           <table
             class="stats-table"
-            aria-label="Tabla de estadisticas del Train tracker"
+            aria-label="Tabela de estatísticas do Train tracker"
           >
             <thead>
               <tr>
-                <th scope="col">Usuario</th>
-                <th scope="col">Total conductor</th>
-                <th scope="col">Total VIP</th>
-                <th scope="col">Dias desde conductor</th>
+                <th scope="col">Nome de usuário</th>
+                <th scope="col">Total de condutores</th>
+                <th scope="col">Total de VIP</th>
+                <th scope="col">Dias desde condutor</th>
                 <th scope="col">Dias desde VIP</th>
               </tr>
             </thead>
@@ -71,11 +68,11 @@
       </section>
 
       <div class="table-wrap">
-        <table class="train-table" aria-label="Registros del Train tracker">
+        <table class="train-table" aria-label="Registros do Train tracker">
           <thead>
             <tr>
-              <th scope="col">Fecha</th>
-              <th scope="col">Conductor</th>
+              <th scope="col">Data</th>
+              <th scope="col">Condutor</th>
               <th scope="col">VIP</th>
             </tr>
           </thead>
@@ -84,10 +81,10 @@
       </div>
 
       <p id="status-message" class="status" role="status" aria-live="polite">
-        Cargando datos de Train tracker...
+        Carregando dados do train tracker...
       </p>
 
-      <p class="note">Fuente: CSV publicado en Google Sheets.</p>
+      <p class="note">Fonte: CSV publicado no Google Sheets.</p>
     </main>
 
     <script>
@@ -102,15 +99,16 @@
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vQU6Du4tIuOoUGSLdggDJE1cA00Hs_Ujj1XcmSIklAEJyYLBFCYlreSW0ccCLSc6yN_r3WCB1FFSP9z/pub?output=csv";
       const expectedColumns = ["date", "conductor", "vip"];
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
-      const LOCALE = "es-ES";
+      const LOCALE = "pt-BR";
       const MESSAGES = {
-        loading: "Cargando datos de Train tracker...",
-        requestFailed: (status) => `La solicitud fallo con estado ${status}`,
-        csvNoRows: "El CSV no contiene filas de datos.",
-        missingColumns: (columns) => `Faltan columnas requeridas: ${columns}.`,
-        loadError: (message) => `No se pudo cargar Train tracker. ${message}`,
+        loading: "Carregando dados do train tracker...",
+        requestFailed: (status) => `A solicitação falhou com status ${status}`,
+        csvNoRows: "O CSV não contém linhas de dados.",
+        missingColumns: (columns) => `Faltam colunas obrigatórias: ${columns}.`,
+        loadError: (message) =>
+          `Não foi possível carregar dados de train tracker. ${message}`,
         loaded: (rowCount, userCount) =>
-          `Se cargaron ${rowCount} filas y ${userCount} usuarios (fecha mas reciente primero).`,
+          `Carregados ${rowCount} linhas e ${userCount} usuários (data mais recente primeiro).`,
       };
 
       function setStatus(message, type) {

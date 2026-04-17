@@ -1,10 +1,31 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VS Archive</title>
     <link rel="stylesheet" href="../vs-tracker.css" />
+    <style>
+      .lang-switch {
+        margin: 0.75rem 0 1.25rem;
+      }
+
+      .lang-switch label {
+        display: inline-block;
+        margin-right: 0.55rem;
+        font-weight: 700;
+      }
+
+      .lang-switch select {
+        width: min(280px, 100%);
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #3d5f56;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
+      }
+    </style>
   </head>
   <body>
     <main class="page">
@@ -18,11 +39,14 @@
         <strong>data/vs-archive/</strong> based on
         <strong>data/vs-archive/manifest.json</strong>.
       </p>
-      <p class="subtitle">
-        Language: English (<a href="../es/vs-archive.html" hreflang="es"
-          >Ver en espanol</a
-        >)
-      </p>
+      <div class="lang-switch">
+        <label for="language-select">Language</label>
+        <select id="language-select" aria-label="Select language">
+          <option value="../en/vs-archive.html" selected>English</option>
+          <option value="../es/vs-archive.html">Español</option>
+          <option value="../pt/vs-archive.html">Português</option>
+        </select>
+      </div>
 
       <section class="archive-controls" aria-label="Archive period selector">
         <label for="week-select">Week</label>
@@ -61,6 +85,10 @@
     <script>
       const tableBody = document.getElementById("tracker-body");
       const statusMessage = document.getElementById("status-message");
+      const languageSelect = document.getElementById("language-select");
+      languageSelect.addEventListener("change", (event) => {
+        window.location.href = event.target.value;
+      });
       const weekSelect = document.getElementById("week-select");
       const manifestUrl = "../data/vs-archive/manifest.json";
       const archiveBasePath = "../data/vs-archive/";
@@ -497,3 +525,4 @@
     </script>
   </body>
 </html>
+
