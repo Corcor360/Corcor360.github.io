@@ -159,10 +159,38 @@
         if (value === null || value === undefined) {
           return null;
         }
-        const normalized = String(value).replace(/,/g, "").trim();
-        if (normalized === "") {
+        const raw = String(value).trim().replace(/\s+/g, "");
+        if (raw === "") {
           return null;
         }
+
+        let normalized = raw;
+        const hasComma = normalized.includes(",");
+        const hasDot = normalized.includes(".");
+
+        if (hasComma && hasDot) {
+          if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+            normalized = normalized.replace(/\./g, "").replace(/,/g, ".");
+          } else {
+            normalized = normalized.replace(/,/g, "");
+          }
+        } else if (hasComma) {
+          const commaParts = normalized.split(",");
+          if (
+            commaParts.length > 2 ||
+            (commaParts.length === 2 && commaParts[1].length === 3)
+          ) {
+            normalized = normalized.replace(/,/g, "");
+          } else {
+            normalized = normalized.replace(/,/g, ".");
+          }
+        } else if (hasDot) {
+          const dotParts = normalized.split(".");
+          if (dotParts.length > 2) {
+            normalized = normalized.replace(/\./g, "");
+          }
+        }
+
         const num = Number(normalized);
         return Number.isFinite(num) ? num : null;
       }
