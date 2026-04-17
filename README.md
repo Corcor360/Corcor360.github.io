@@ -10,7 +10,7 @@ The site now supports three languages:
 - Spanish: `es/`
 - Portuguese: `pt/`
 
-Root pages (`index.html`, `PPLE-Home.html`, `train-tracker.html`, `vs-tracker.html`, `vs-archive.html`) redirect to the English versions under `en/`.
+Root pages (`index.html`, `PPLE-Home.html`, `train-tracker.html`, `vs-tracker.html`, `vs-archive.html`) automatically detect the browser's preferred language and redirect to the appropriate language version. If the browser language is not supported (e.g., French, German), the site falls back to English.
 
 ## GitHub Pages
 

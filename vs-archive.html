@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="refresh" content="5; url=en/vs-archive.html" />
-    <title>Redirecting to English VS Archive</title>
+    <title>Redirecting to VS Archive</title>
     <style>
       body {
         margin: 0;
@@ -29,51 +28,32 @@
         box-shadow: 0 16px 30px rgba(59, 77, 52, 0.12);
         text-align: center;
       }
-
-      .lang-switch {
-        margin-top: 1rem;
-      }
-
-      .lang-switch label {
-        display: block;
-        margin-bottom: 0.4rem;
-        font-weight: 700;
-        color: #2f5d50;
-      }
-
-      .lang-switch select {
-        width: min(280px, 100%);
-        padding: 0.55rem 0.7rem;
-        border-radius: 10px;
-        border: 1px solid #2f5d50;
-        background: #fff;
-        color: #1f3f36;
-        font: inherit;
-      }
     </style>
   </head>
   <body>
     <main>
       <h1>Redirecting...</h1>
-      <p>
-        English is the default language. Redirecting in 5 seconds, or choose a
-        language below.
-      </p>
-      <div class="lang-switch">
-        <label for="language-select">Language</label>
-        <select id="language-select" aria-label="Select language">
-          <option value="en/vs-archive.html" selected>English</option>
-          <option value="es/vs-archive.html">Español</option>
-          <option value="pt/vs-archive.html">Português</option>
-        </select>
-      </div>
+      <p>Detecting your language preference. Redirecting...</p>
     </main>
 
     <script>
-      const languageSelect = document.getElementById("language-select");
-      languageSelect.addEventListener("change", (event) => {
-        window.location.href = event.target.value;
-      });
+      function getLanguagePath() {
+        const supported = { en: "en", es: "es", pt: "pt" };
+        const browserLangs = navigator.languages || [navigator.language];
+
+        for (const browserLang of browserLangs) {
+          const langCode = browserLang.split("-")[0].toLowerCase();
+          if (supported[langCode]) {
+            return supported[langCode];
+          }
+        }
+
+        return "en";
+      }
+
+      const lang = getLanguagePath();
+      const targetPage = "vs-archive.html";
+      window.location.href = `${lang}/${targetPage}`;
     </script>
   </body>
 </html>
