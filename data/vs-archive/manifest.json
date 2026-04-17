@@ -1,10 +1,16 @@
 [
   {
-    "label": "Week 15 (Apr 5-11, 2026)",
-    "csv": "data/vs-archive/2026-W15.csv"
+    "labels": {
+      "en": "Week 15 (Apr 5-11, 2026)",
+      "es": "Semana 15 (5-11 abr 2026)"
+    },
+    "csv": "2026-W15.csv"
   },
   {
-    "label": "Week 14 (Mar 29-Apr 4, 2026)",
-    "csv": "data/vs-archive/2026-W14.csv"
+    "labels": {
+      "en": "Week 14 (Mar 29-Apr 4, 2026)",
+      "es": "Semana 14 (29 mar-4 abr 2026)"
+    },
+    "csv": "2026-W14.csv"
   }
 ]

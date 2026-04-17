@@ -2,6 +2,15 @@
 
 This repository contains the Corcor360 website.
 
+## Localization
+
+The site now supports two languages:
+
+- English (default): `en/`
+- Spanish: `es/`
+
+Root pages (`index.html`, `PPLE-Home.html`, `train-tracker.html`, `vs-tracker.html`, `vs-archive.html`) redirect to the English versions under `en/`.
+
 ## GitHub Pages
 
 The website is designed to function on GitHub Pages and is structured for direct hosting from this repository.
@@ -20,10 +29,10 @@ Expected CSV columns:
 
 ## VS Archive Manual CSV Workflow
 
-The archive page at `vs-archive.html` loads data from `data/vs-archive/manifest.json`.
+Archive pages (`en/vs-archive.html` and `es/vs-archive.html`) load data from `data/vs-archive/manifest.json`.
 
 1. Add a weekly CSV file under `data/vs-archive/` (example: `2026-W15.csv`).
-2. Add a manifest entry with a display label and CSV path.
+2. Add a manifest entry with localized labels and the CSV filename.
 3. Commit and push.
 
 Manifest format:
@@ -31,8 +40,11 @@ Manifest format:
 ```json
 [
   {
-    "label": "Week 15 (Apr 8-13, 2026)",
-    "csv": "data/vs-archive/2026-W15.csv"
+    "labels": {
+      "en": "Week 15 (Apr 8-13, 2026)",
+      "es": "Semana 15 (8-13 abr 2026)"
+    },
+    "csv": "2026-W15.csv"
   }
 ]
 ```

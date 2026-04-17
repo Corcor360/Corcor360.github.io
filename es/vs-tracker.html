@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pagina VS Tracker</title>
+    <link rel="stylesheet" href="../vs-tracker.css" />
+  </head>
+  <body>
+    <main class="page">
+      <div class="title-row">
+        <h1>Pagina VS Tracker</h1>
+        <a class="back-link" href="PPLE-Home.html">Volver al inicio</a>
+      </div>
+      <p class="subtitle">
+        Leyenda de formato condicional: <span class="score-red">Rojo</span> =
+        Menos de 3,600,000 puntos, <span class="score-orange">Naranja</span> =
+        3,600,000 a 7,200,000 puntos, <span class="score-green">Verde</span> =
+        7,200,000+ puntos.
+      </p>
+      <p class="subtitle">
+        Idioma: Espanol (<a href="../en/vs-tracker.html" hreflang="en"
+          >View in English</a
+        >)
+      </p>
+
+      <div class="table-wrap">
+        <table aria-label="Clasificacion de VS tracker">
+          <thead>
+            <tr>
+              <th scope="col">Rango</th>
+              <th scope="col">Usuario</th>
+              <th scope="col">Radar</th>
+              <th scope="col">Construccion</th>
+              <th scope="col">Tecnologia</th>
+              <th scope="col">Heroe</th>
+              <th scope="col">Movilizacion</th>
+              <th scope="col">Buster</th>
+              <th scope="col">Promedio diario</th>
+              <th scope="col">Puntaje total</th>
+            </tr>
+          </thead>
+          <tbody id="tracker-body"></tbody>
+        </table>
+      </div>
+
+      <p id="status-message" class="status" role="status" aria-live="polite">
+        Cargando datos del tracker...
+      </p>
+
+      <p class="note">Los rangos se muestran del 1 al 100.</p>
+    </main>
+
+    <script>
+      const tableBody = document.getElementById("tracker-body");
+      const statusMessage = document.getElementById("status-message");
+      const csvUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQOJi45FrVzpw00_C8KsQ_qXgYKvhULP_GzqHSKZCIrf0eWPqc3QwLoudLlzfVIvwcAYCNf8JkpAk46/pub?output=csv";
+      const expectedColumns = [
+        "rank",
+        "username",
+        "radar",
+        "construction",
+        "tech",
+        "hero",
+        "mobilization",
+        "buster",
+        "daily average",
+        "total score",
+      ];
+      const LOCALE = "es-ES";
+      const MESSAGES = {
+        loading: "Cargando datos del tracker...",
+        http: (status) => `HTTP ${status}`,
+        csvMissingRows: "El CSV esta vacio o no tiene filas de datos.",
+        missingUsername: "El CSV debe incluir una columna Username.",
+        noValidRows: "No se encontraron filas validas en el CSV.",
+        loaded: (rowCount) =>
+          `Se cargaron ${rowCount} filas, ordenadas por total semanal. El rango se genera automaticamente de 1 a 100. Recarga la pagina para obtener datos nuevos.`,
+        loadError: (message) =>
+          `No se pudieron cargar los datos desde Google Sheets. ${message}`,
+      };
+
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status";
+        if (type) {
+          statusMessage.classList.add(type);
+        }
+      }
+
+      function normalizeHeader(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, "");
+      }
+
+      function parseCsvLine(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
+      }
+
+      function parseCsv(text) {
+        return text
+          .split(/\r?\n/)
+          .filter((line) => line.trim() !== "")
+          .map((line) => parseCsvLine(line).map((cell) => cell.trim()));
+      }
+
+      function toNumber(value) {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        const normalized = String(value).replace(/,/g, "").trim();
+        if (normalized === "") {
+          return null;
+        }
+        const num = Number(normalized);
+        return Number.isFinite(num) ? num : null;
+      }
+
+      function formatScore(value, fractionDigits = null, roundUp = false) {
+        const numericValue = toNumber(value);
+        if (numericValue === null) {
+          return value;
+        }
+
+        const displayValue = roundUp ? Math.ceil(numericValue) : numericValue;
+
+        if (fractionDigits !== null) {
+          return displayValue.toLocaleString(LOCALE, {
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits,
+          });
+        }
+
+        return displayValue.toLocaleString(LOCALE);
+      }
+
+      function buildHeaderMap(headerRow) {
+        const normalizedHeader = headerRow.map((value) =>
+          normalizeHeader(value),
+        );
+        const aliases = {
+          rank: ["rank"],
+          username: ["username", "user", "name"],
+          radar: ["radar", "monday", "mon"],
+          construction: ["construction", "tuesday", "tue", "tues"],
+          tech: ["tech", "wednesday", "wed"],
+          hero: ["hero", "thursday", "thu", "thur", "thurs"],
+          mobilization: ["mobilization", "friday", "fri"],
+          buster: ["buster", "saturday", "sat"],
+          "daily average": ["dailyaverage", "average", "avg"],
+          "total score": ["totalscore", "total"],
+        };
+
+        const map = {};
+
+        for (const key of expectedColumns) {
+          const aliasList = aliases[key] || [key];
+          map[key] = normalizedHeader.findIndex((headerName) =>
+            aliasList.includes(headerName),
+          );
+        }
+
+        return map;
+      }
+
+      function getValue(cells, index) {
+        if (index < 0 || index >= cells.length) {
+          return "";
+        }
+        return cells[index] || "";
+      }
+
+      function renderRows(rows) {
+        tableBody.innerHTML = "";
+
+        function getDailyScoreClass(value) {
+          const numericValue = toNumber(value);
+          if (numericValue === null) {
+            return "";
+          }
+          if (numericValue < 3600000) {
+            return "score-red";
+          }
+          if (numericValue < 7200000) {
+            return "score-orange";
+          }
+          return "score-green";
+        }
+
+        function getWeeklyTotalClass(value) {
+          const numericValue = toNumber(value);
+          if (numericValue === null) {
+            return "";
+          }
+          if (numericValue < 43200000) {
+            return "score-red";
+          }
+          return "score-green";
+        }
+
+        rows.forEach((rowData) => {
+          const row = document.createElement("tr");
+
+          rowData.forEach((value, index) => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            if (index === 1) {
+              cell.className = "name-col";
+            }
+            if (index >= 2 && index <= 8) {
+              const scoreClass = getDailyScoreClass(value);
+              if (scoreClass) {
+                cell.classList.add(scoreClass);
+              }
+            }
+            if (index === 9) {
+              const totalClass = getWeeklyTotalClass(value);
+              if (totalClass) {
+                cell.classList.add(totalClass);
+              }
+            }
+            row.appendChild(cell);
+          });
+
+          tableBody.appendChild(row);
+        });
+      }
+
+      async function loadTrackerData() {
+        setStatus(MESSAGES.loading);
+
+        try {
+          const response = await fetch(csvUrl, { cache: "no-store" });
+
+          if (!response.ok) {
+            throw new Error(MESSAGES.http(response.status));
+          }
+
+          const csvText = await response.text();
+          const parsed = parseCsv(csvText);
+
+          if (parsed.length < 2) {
+            throw new Error(MESSAGES.csvMissingRows);
+          }
+
+          const headerMap = buildHeaderMap(parsed[0]);
+
+          if (headerMap.username === -1) {
+            throw new Error(MESSAGES.missingUsername);
+          }
+
+          const dataRows = [];
+
+          for (let i = 1; i < parsed.length; i += 1) {
+            const cells = parsed[i];
+            const hasAnyValue = cells.some((value) => value.trim() !== "");
+            if (!hasAnyValue) {
+              continue;
+            }
+
+            const username = getValue(cells, headerMap.username);
+            const radar = getValue(cells, headerMap.radar);
+            const construction = getValue(cells, headerMap.construction);
+            const tech = getValue(cells, headerMap.tech);
+            const hero = getValue(cells, headerMap.hero);
+            const mobilization = getValue(cells, headerMap.mobilization);
+            const buster = getValue(cells, headerMap.buster);
+
+            let dailyAverage = getValue(cells, headerMap["daily average"]);
+            let totalScore = getValue(cells, headerMap["total score"]);
+
+            const dayNumbers = [
+              toNumber(radar),
+              toNumber(construction),
+              toNumber(tech),
+              toNumber(hero),
+              toNumber(mobilization),
+              toNumber(buster),
+            ];
+            const validDayNumbers = dayNumbers.filter(
+              (value) => value !== null,
+            );
+
+            if (!dailyAverage && validDayNumbers.length > 0) {
+              const sum = validDayNumbers.reduce(
+                (acc, value) => acc + value,
+                0,
+              );
+              dailyAverage = (sum / validDayNumbers.length).toFixed(2);
+            }
+
+            if (!totalScore && validDayNumbers.length > 0) {
+              totalScore = String(
+                validDayNumbers.reduce((acc, value) => acc + value, 0),
+              );
+            }
+
+            const computedWeeklyTotal =
+              toNumber(totalScore) ??
+              validDayNumbers.reduce((acc, value) => acc + value, 0);
+
+            dataRows.push({
+              username,
+              radar,
+              construction,
+              tech,
+              hero,
+              mobilization,
+              buster,
+              dailyAverage,
+              totalScore,
+              weeklyTotal: computedWeeklyTotal,
+            });
+          }
+
+          if (dataRows.length === 0) {
+            throw new Error(MESSAGES.noValidRows);
+          }
+
+          dataRows.sort((a, b) => b.weeklyTotal - a.weeklyTotal);
+
+          const rankedRows = dataRows
+            .slice(0, 100)
+            .map((row, index) => [
+              index + 1,
+              row.username,
+              row.radar,
+              row.construction,
+              row.tech,
+              row.hero,
+              row.mobilization,
+              row.buster,
+              formatScore(row.dailyAverage, null, true),
+              formatScore(row.totalScore),
+            ]);
+
+          renderRows(rankedRows);
+          setStatus(MESSAGES.loaded(rankedRows.length), "success");
+        } catch (error) {
+          tableBody.innerHTML = "";
+          setStatus(MESSAGES.loadError(error.message), "error");
+        }
+      }
+
+      loadTrackerData();
+    </script>
+  </body>
+</html>

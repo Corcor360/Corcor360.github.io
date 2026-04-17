@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Train Tracker</title>
+    <link rel="stylesheet" href="../vs-tracker.css" />
+    <link rel="stylesheet" href="../train-tracker.css" />
+  </head>
+  <body>
+    <main class="page">
+      <div class="title-row">
+        <h1>Train Tracker</h1>
+        <a class="back-link" href="PPLE-Home.html">Volver al inicio</a>
+      </div>
+
+      <p class="subtitle">
+        Tabla en vivo cargada desde una fuente CSV publicada en Google Sheets.
+      </p>
+      <p class="subtitle">
+        Idioma: Espanol (<a href="../en/train-tracker.html" hreflang="en"
+          >View in English</a
+        >)
+      </p>
+
+      <section
+        class="stats-section"
+        aria-label="Estadisticas del Train tracker"
+      >
+        <div class="table-wrap">
+          <table
+            class="stats-table"
+            aria-label="Tabla de estadisticas del Train tracker"
+          >
+            <thead>
+              <tr>
+                <th scope="col">Usuario</th>
+                <th scope="col">Total conductor</th>
+                <th scope="col">Total VIP</th>
+                <th scope="col">Dias desde conductor</th>
+                <th scope="col">Dias desde VIP</th>
+              </tr>
+            </thead>
+            <tbody id="stats-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="table-wrap">
+        <table class="train-table" aria-label="Registros del Train tracker">
+          <thead>
+            <tr>
+              <th scope="col">Fecha</th>
+              <th scope="col">Conductor</th>
+              <th scope="col">VIP</th>
+            </tr>
+          </thead>
+          <tbody id="tracker-body"></tbody>
+        </table>
+      </div>
+
+      <p id="status-message" class="status" role="status" aria-live="polite">
+        Cargando datos de Train tracker...
+      </p>
+
+      <p class="note">Fuente: CSV publicado en Google Sheets.</p>
+    </main>
+
+    <script>
+      const tableBody = document.getElementById("tracker-body");
+      const statsBody = document.getElementById("stats-body");
+      const statusMessage = document.getElementById("status-message");
+      const csvUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQU6Du4tIuOoUGSLdggDJE1cA00Hs_Ujj1XcmSIklAEJyYLBFCYlreSW0ccCLSc6yN_r3WCB1FFSP9z/pub?output=csv";
+      const expectedColumns = ["date", "conductor", "vip"];
+      const DAY_IN_MS = 24 * 60 * 60 * 1000;
+      const LOCALE = "es-ES";
+      const MESSAGES = {
+        loading: "Cargando datos de Train tracker...",
+        requestFailed: (status) => `La solicitud fallo con estado ${status}`,
+        csvNoRows: "El CSV no contiene filas de datos.",
+        missingColumns: (columns) => `Faltan columnas requeridas: ${columns}.`,
+        loadError: (message) => `No se pudo cargar Train tracker. ${message}`,
+        loaded: (rowCount, userCount) =>
+          `Se cargaron ${rowCount} filas y ${userCount} usuarios (fecha mas reciente primero).`,
+      };
+
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status";
+        if (type) {
+          statusMessage.classList.add(type);
+        }
+      }
+
+      function normalizeHeader(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, "");
+      }
+
+      function parseCsvLine(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
+      }
+
+      function parseCsv(text) {
+        return text
+          .split(/\r?\n/)
+          .filter((line) => line.trim() !== "")
+          .map((line) => parseCsvLine(line).map((cell) => cell.trim()));
+      }
+
+      function buildHeaderMap(headerRow) {
+        const normalizedHeader = headerRow.map((value) =>
+          normalizeHeader(value),
+        );
+        const aliases = {
+          date: ["date", "day"],
+          conductor: ["conductor", "driver", "name"],
+          vip: ["vip", "status", "tier"],
+        };
+
+        const map = {};
+
+        for (const key of expectedColumns) {
+          const aliasList = aliases[key] || [key];
+          map[key] = normalizedHeader.findIndex((headerName) =>
+            aliasList.includes(headerName),
+          );
+        }
+
+        return map;
+      }
+
+      function getValue(cells, index) {
+        if (index < 0 || index >= cells.length) {
+          return "";
+        }
+        return cells[index] || "";
+      }
+
+      function parseDateValue(value) {
+        const raw = String(value || "").trim();
+        if (!raw) {
+          return null;
+        }
+
+        const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (isoMatch) {
+          const year = Number(isoMatch[1]);
+          const month = Number(isoMatch[2]);
+          const day = Number(isoMatch[3]);
+          const timestamp = Date.UTC(year, month - 1, day);
+          const normalized = new Date(timestamp);
+          if (
+            normalized.getUTCFullYear() === year &&
+            normalized.getUTCMonth() === month - 1 &&
+            normalized.getUTCDate() === day
+          ) {
+            return timestamp;
+          }
+        }
+
+        const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+        if (match) {
+          const month = Number(match[1]);
+          const day = Number(match[2]);
+          let year = Number(match[3]);
+
+          if (year < 100) {
+            year += year >= 70 ? 1900 : 2000;
+          }
+
+          const timestamp = Date.UTC(year, month - 1, day);
+          const normalized = new Date(timestamp);
+          if (
+            normalized.getUTCFullYear() === year &&
+            normalized.getUTCMonth() === month - 1 &&
+            normalized.getUTCDate() === day
+          ) {
+            return timestamp;
+          }
+        }
+
+        const numericRaw = Number(raw);
+        if (Number.isFinite(numericRaw)) {
+          if (numericRaw >= 25000 && numericRaw <= 80000) {
+            return Date.UTC(1899, 11, 30) + numericRaw * 24 * 60 * 60 * 1000;
+          }
+          if (numericRaw >= 1000000000000) {
+            return numericRaw;
+          }
+          if (numericRaw >= 1000000000) {
+            return numericRaw * 1000;
+          }
+        }
+
+        const parsed = Date.parse(raw);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+
+        return null;
+      }
+
+      function formatDateForDisplay(value, timestamp) {
+        if (timestamp === null) {
+          return String(value || "");
+        }
+
+        return new Intl.DateTimeFormat(LOCALE, {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+          timeZone: "UTC",
+        }).format(new Date(timestamp));
+      }
+
+      function renderRows(rows) {
+        tableBody.innerHTML = "";
+
+        rows.forEach((rowData) => {
+          const row = document.createElement("tr");
+
+          rowData.forEach((value, index) => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            if (index === 1) {
+              cell.classList.add("name-col");
+            }
+            row.appendChild(cell);
+          });
+
+          tableBody.appendChild(row);
+        });
+      }
+
+      function toUtcDayTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        return Date.UTC(
+          date.getUTCFullYear(),
+          date.getUTCMonth(),
+          date.getUTCDate(),
+        );
+      }
+
+      function daysSince(timestamp, todayUtcDay) {
+        if (timestamp === null) {
+          return "-";
+        }
+
+        const diffDays = Math.floor(
+          (todayUtcDay - toUtcDayTimestamp(timestamp)) / DAY_IN_MS,
+        );
+        return diffDays < 0 ? 0 : diffDays;
+      }
+
+      function buildUserStats(rows) {
+        const statsMap = new Map();
+
+        function upsertUser(name) {
+          const normalized = String(name || "").trim();
+          if (!normalized) {
+            return null;
+          }
+
+          if (!statsMap.has(normalized)) {
+            statsMap.set(normalized, {
+              username: normalized,
+              driverCount: 0,
+              vipCount: 0,
+              lastDriverTimestamp: null,
+              lastVipTimestamp: null,
+            });
+          }
+
+          return statsMap.get(normalized);
+        }
+
+        rows.forEach((entry) => {
+          const driver = upsertUser(entry.row[1]);
+          if (driver) {
+            driver.driverCount += 1;
+            if (
+              entry.timestamp !== null &&
+              (driver.lastDriverTimestamp === null ||
+                entry.timestamp > driver.lastDriverTimestamp)
+            ) {
+              driver.lastDriverTimestamp = entry.timestamp;
+            }
+          }
+
+          const vip = upsertUser(entry.row[2]);
+          if (vip) {
+            vip.vipCount += 1;
+            if (
+              entry.timestamp !== null &&
+              (vip.lastVipTimestamp === null ||
+                entry.timestamp > vip.lastVipTimestamp)
+            ) {
+              vip.lastVipTimestamp = entry.timestamp;
+            }
+          }
+        });
+
+        const today = new Date();
+        const todayUtcDay = Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate(),
+        );
+
+        return Array.from(statsMap.values())
+          .map((stat) => ({
+            username: stat.username,
+            driverCount: stat.driverCount,
+            vipCount: stat.vipCount,
+            lastTimeDriving: daysSince(stat.lastDriverTimestamp, todayUtcDay),
+            lastTimeVip: daysSince(stat.lastVipTimestamp, todayUtcDay),
+          }))
+          .sort((a, b) =>
+            a.username.localeCompare(b.username, undefined, {
+              sensitivity: "base",
+            }),
+          );
+      }
+
+      function renderStatsRows(statsRows) {
+        statsBody.innerHTML = "";
+
+        statsRows.forEach((stat) => {
+          const row = document.createElement("tr");
+          const values = [
+            stat.username,
+            String(stat.driverCount),
+            String(stat.vipCount),
+            String(stat.lastTimeDriving),
+            String(stat.lastTimeVip),
+          ];
+
+          values.forEach((value) => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+          });
+
+          statsBody.appendChild(row);
+        });
+      }
+
+      async function loadTrainData() {
+        setStatus(MESSAGES.loading);
+
+        try {
+          const response = await fetch(csvUrl, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(MESSAGES.requestFailed(response.status));
+          }
+
+          const csvText = await response.text();
+          const rows = parseCsv(csvText);
+
+          if (rows.length < 2) {
+            throw new Error(MESSAGES.csvNoRows);
+          }
+
+          const [headerRow, ...dataRows] = rows;
+          const headerMap = buildHeaderMap(headerRow);
+          const missingColumns = expectedColumns.filter(
+            (column) => headerMap[column] < 0,
+          );
+
+          if (missingColumns.length > 0) {
+            throw new Error(MESSAGES.missingColumns(missingColumns.join(", ")));
+          }
+
+          const normalizedRows = dataRows.map((cells, index) => {
+            const dateValue = getValue(cells, headerMap.date);
+            const timestamp = parseDateValue(dateValue);
+            return {
+              row: [
+                formatDateForDisplay(dateValue, timestamp),
+                getValue(cells, headerMap.conductor),
+                getValue(cells, headerMap.vip),
+              ],
+              timestamp,
+              originalIndex: index,
+            };
+          });
+
+          normalizedRows.sort((a, b) => {
+            const aHasDate = a.timestamp !== null;
+            const bHasDate = b.timestamp !== null;
+
+            if (aHasDate && bHasDate) {
+              return b.timestamp - a.timestamp;
+            }
+            if (aHasDate) {
+              return -1;
+            }
+            if (bHasDate) {
+              return 1;
+            }
+
+            return a.originalIndex - b.originalIndex;
+          });
+
+          const statsRows = buildUserStats(normalizedRows);
+          renderStatsRows(statsRows);
+          renderRows(normalizedRows.map((entry) => entry.row));
+          setStatus(
+            MESSAGES.loaded(normalizedRows.length, statsRows.length),
+            "success",
+          );
+        } catch (error) {
+          tableBody.innerHTML = "";
+          statsBody.innerHTML = "";
+          setStatus(MESSAGES.loadError(error.message), "error");
+        }
+      }
+
+      loadTrainData();
+    </script>
+  </body>
+</html>

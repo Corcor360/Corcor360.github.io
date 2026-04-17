@@ -1,10 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="refresh" content="0; url=en/index.html" />
-    <title>Redirecting to English Home</title>
+    <title>Inicio PPLE</title>
     <style>
       body {
         margin: 0;
@@ -30,6 +29,10 @@
         text-align: center;
       }
 
+      h1 {
+        margin-top: 0;
+      }
+
       .actions {
         display: flex;
         justify-content: center;
@@ -48,18 +51,37 @@
         text-decoration: none;
         font-weight: 700;
       }
+
+      a:hover {
+        background: #22443a;
+      }
+
+      .lang-switch {
+        margin-top: 1rem;
+      }
+
+      .lang-switch a {
+        background: transparent;
+        color: #2f5d50;
+      }
+
+      .lang-switch a:hover {
+        background: #2f5d50;
+        color: #fff;
+      }
     </style>
-    <script>
-      window.location.replace("en/index.html");
-    </script>
   </head>
   <body>
     <main>
-      <h1>Redirecting...</h1>
-      <p>English is the default language. Choose a language below if needed.</p>
+      <h1>Bienvenido a PPLE Home</h1>
+      <p>Selecciona una pagina para continuar.</p>
       <div class="actions">
-        <a href="en/index.html" hreflang="en">English</a>
-        <a href="es/index.html" hreflang="es">Espanol</a>
+        <a href="vs-tracker.html">Abrir VS Tracker</a>
+        <a href="vs-archive.html">Abrir VS Archive</a>
+        <a href="train-tracker.html">Abrir Train Tracker</a>
+      </div>
+      <div class="lang-switch">
+        <a href="../en/PPLE-Home.html" hreflang="en">View in English</a>
       </div>
     </main>
   </body>

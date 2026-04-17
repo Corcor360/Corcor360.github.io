@@ -1,10 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="refresh" content="0; url=en/index.html" />
-    <title>Redirecting to English Home</title>
+    <title>Indice</title>
     <style>
       body {
         margin: 0;
@@ -25,21 +24,18 @@
         border: 1px solid #a4b494;
         border-radius: 14px;
         padding: 2rem;
-        max-width: 680px;
+        max-width: 640px;
         box-shadow: 0 16px 30px rgba(59, 77, 52, 0.12);
         text-align: center;
       }
 
-      .actions {
-        display: flex;
-        justify-content: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        margin-top: 1rem;
+      h1 {
+        margin-top: 0;
       }
 
       a {
         display: inline-block;
+        margin-top: 1rem;
         padding: 0.7rem 1rem;
         border-radius: 10px;
         border: 1px solid #2f5d50;
@@ -48,18 +44,43 @@
         text-decoration: none;
         font-weight: 700;
       }
+
+      a:hover {
+        background: #22443a;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .lang-switch {
+        margin-top: 1rem;
+      }
+
+      .lang-switch a {
+        margin-top: 0;
+        background: transparent;
+        color: #2f5d50;
+      }
+
+      .lang-switch a:hover {
+        background: #2f5d50;
+        color: #fff;
+      }
     </style>
-    <script>
-      window.location.replace("en/index.html");
-    </script>
   </head>
   <body>
     <main>
-      <h1>Redirecting...</h1>
-      <p>English is the default language. Choose a language below if needed.</p>
+      <h1>Indice</h1>
+      <p>Abre la pagina principal de PPLE a continuacion.</p>
       <div class="actions">
-        <a href="en/index.html" hreflang="en">English</a>
-        <a href="es/index.html" hreflang="es">Espanol</a>
+        <a href="PPLE-Home.html">Ir a PPLE Home</a>
+      </div>
+      <div class="lang-switch">
+        <a href="../en/index.html" hreflang="en">View in English</a>
       </div>
     </main>
   </body>
