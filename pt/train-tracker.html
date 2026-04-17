@@ -372,11 +372,24 @@
             lastTimeDriving: daysSince(stat.lastDriverTimestamp, todayUtcDay),
             lastTimeVip: daysSince(stat.lastVipTimestamp, todayUtcDay),
           }))
-          .sort((a, b) =>
-            a.username.localeCompare(b.username, undefined, {
+          .sort((a, b) => {
+            const aDays =
+              typeof a.lastTimeDriving === "number"
+                ? a.lastTimeDriving
+                : Number.POSITIVE_INFINITY;
+            const bDays =
+              typeof b.lastTimeDriving === "number"
+                ? b.lastTimeDriving
+                : Number.POSITIVE_INFINITY;
+
+            if (aDays !== bDays) {
+              return aDays - bDays;
+            }
+
+            return a.username.localeCompare(b.username, undefined, {
               sensitivity: "base",
-            }),
-          );
+            });
+          });
       }
 
       function renderStatsRows(statsRows) {
@@ -477,4 +490,3 @@
     </script>
   </body>
 </html>
-
