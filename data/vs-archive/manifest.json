@@ -1,6 +1,14 @@
 [
   {
     "labels": {
+      "en": "Week 16 (Apr 12-Apr 18, 2026)",
+      "es": "Semana 16 (12-18 abr 2026)",
+      "pt": "Semana 16 (12-18 abr 2026)"
+    },
+    "csv": "2026-W16.csv"
+  },
+  {
+    "labels": {
       "en": "Week 15 (Apr 5-11, 2026)",
       "es": "Semana 15 (5-11 abr 2026)",
       "pt": "Semana 15 (5-11 abr 2026)"
