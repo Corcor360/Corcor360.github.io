@@ -219,8 +219,8 @@
       </p>
 
       <p class="note">
-        Each click of Generate Random Teams creates a new random assignment from
-        the same top 20 pool.
+        Players who were conductor in the last 14 days are excluded from the
+        pool before random assignment.
       </p>
     </main>
 
@@ -256,8 +256,10 @@
         window.location.href = event.target.value;
       });
 
-      const csvUrl =
+      const vsCsvUrl =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vQOJi45FrVzpw00_C8KsQ_qXgYKvhULP_GzqHSKZCIrf0eWPqc3QwLoudLlzfVIvwcAYCNf8JkpAk46/pub?output=csv";
+      const trainCsvUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQU6Du4tIuOoUGSLdggDJE1cA00Hs_Ujj1XcmSIklAEJyYLBFCYlreSW0ccCLSc6yN_r3WCB1FFSP9z/pub?output=csv";
       const ignoreUrl = "../data/train-selector-ignore.json";
       const expectedColumns = [
         "rank",
@@ -271,19 +273,25 @@
         "daily average",
         "total score",
       ];
+      const trainExpectedColumns = ["date", "conductor", "vip"];
+      const DAY_IN_MS = 24 * 60 * 60 * 1000;
+      const CONDUCTOR_COOLDOWN_DAYS = 14;
       const LOCALE = "en-US";
       const MESSAGES = {
         loading: "Loading tracker data...",
         http: (status) => `HTTP ${status}`,
         csvMissingRows: "CSV is empty or missing data rows.",
         missingUsername: "CSV must include a Username column.",
+        missingColumns: (columns) => `Missing required columns: ${columns}.`,
+        trainMissingColumns: (columns) =>
+          `Train Tracker is missing required columns: ${columns}.`,
         noValidRows: "No valid rows found in the CSV.",
         ignoreInvalid:
           "Ignore file is invalid. Expected JSON object with an exclude array.",
         notEnoughTopPlayers:
-          "Need at least 15 valid players in the top 20 pool to randomize.",
+          "Need at least 15 eligible players after exclusions and 14-day conductor cooldown.",
         ready: (rowCount) =>
-          `Loaded top ${rowCount} players. Click Generate Random Teams to pick 5 Driver, 5 VIP, and 5 Substitute entries.`,
+          `Loaded top ${rowCount} eligible players from VS Tracker after exclusions. Click Generate Random Teams to pick 5 Driver, 5 VIP, and 5 Substitute entries.`,
         randomDone:
           "Random teams generated. Use Export CSV to download the current selection.",
         loadError: (message) =>
@@ -365,12 +373,106 @@
         return Number.isFinite(num) ? num : null;
       }
 
-      function formatScore(value) {
+      function formatScore(value, fractionDigits = null, roundUp = false) {
         const numericValue = toNumber(value);
         if (numericValue === null) {
           return value;
         }
-        return numericValue.toLocaleString(LOCALE);
+
+        const displayValue = roundUp ? Math.ceil(numericValue) : numericValue;
+
+        if (fractionDigits !== null) {
+          return displayValue.toLocaleString(LOCALE, {
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits,
+          });
+        }
+
+        return displayValue.toLocaleString(LOCALE);
+      }
+
+      function parseDateValue(value) {
+        const raw = String(value || "").trim();
+        if (!raw) {
+          return null;
+        }
+
+        const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (isoMatch) {
+          const year = Number(isoMatch[1]);
+          const month = Number(isoMatch[2]);
+          const day = Number(isoMatch[3]);
+          const timestamp = Date.UTC(year, month - 1, day);
+          const normalized = new Date(timestamp);
+          if (
+            normalized.getUTCFullYear() === year &&
+            normalized.getUTCMonth() === month - 1 &&
+            normalized.getUTCDate() === day
+          ) {
+            return timestamp;
+          }
+        }
+
+        const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+        if (match) {
+          const month = Number(match[1]);
+          const day = Number(match[2]);
+          let year = Number(match[3]);
+
+          if (year < 100) {
+            year += year >= 70 ? 1900 : 2000;
+          }
+
+          const timestamp = Date.UTC(year, month - 1, day);
+          const normalized = new Date(timestamp);
+          if (
+            normalized.getUTCFullYear() === year &&
+            normalized.getUTCMonth() === month - 1 &&
+            normalized.getUTCDate() === day
+          ) {
+            return timestamp;
+          }
+        }
+
+        const numericRaw = Number(raw);
+        if (Number.isFinite(numericRaw)) {
+          if (numericRaw >= 25000 && numericRaw <= 80000) {
+            return Date.UTC(1899, 11, 30) + numericRaw * DAY_IN_MS;
+          }
+          if (numericRaw >= 1000000000000) {
+            return numericRaw;
+          }
+          if (numericRaw >= 1000000000) {
+            return numericRaw * 1000;
+          }
+        }
+
+        const parsed = Date.parse(raw);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+
+        return null;
+      }
+
+      function toUtcDayTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        return Date.UTC(
+          date.getUTCFullYear(),
+          date.getUTCMonth(),
+          date.getUTCDate(),
+        );
+      }
+
+      function daysSinceTimestamp(timestamp, todayUtcDay) {
+        if (timestamp === null) {
+          return null;
+        }
+
+        const diffDays = Math.floor(
+          (todayUtcDay - toUtcDayTimestamp(timestamp)) / DAY_IN_MS,
+        );
+        return diffDays < 0 ? 0 : diffDays;
       }
 
       function buildHeaderMap(headerRow) {
@@ -402,6 +504,28 @@
         return map;
       }
 
+      function buildTrainHeaderMap(headerRow) {
+        const normalizedHeader = headerRow.map((value) =>
+          normalizeHeader(value),
+        );
+        const aliases = {
+          date: ["date", "day"],
+          conductor: ["conductor", "driver", "name"],
+          vip: ["vip", "status", "tier"],
+        };
+
+        const map = {};
+
+        for (const key of trainExpectedColumns) {
+          const aliasList = aliases[key] || [key];
+          map[key] = normalizedHeader.findIndex((headerName) =>
+            aliasList.includes(headerName),
+          );
+        }
+
+        return map;
+      }
+
       function getValue(cells, index) {
         if (index < 0 || index >= cells.length) {
           return "";
@@ -410,7 +534,9 @@
       }
 
       function normalizeUsername(value) {
-        return String(value || "").trim().toLowerCase();
+        return String(value || "")
+          .trim()
+          .toLowerCase();
       }
 
       async function loadIgnoreList() {
@@ -560,23 +686,72 @@
         try {
           await loadIgnoreList();
 
-          const response = await fetch(csvUrl, { cache: "no-store" });
+          const [vsResponse, trainResponse] = await Promise.all([
+            fetch(vsCsvUrl, { cache: "no-store" }),
+            fetch(trainCsvUrl, { cache: "no-store" }),
+          ]);
 
-          if (!response.ok) {
-            throw new Error(MESSAGES.http(response.status));
+          if (!vsResponse.ok) {
+            throw new Error(MESSAGES.http(vsResponse.status));
+          }
+          if (!trainResponse.ok) {
+            throw new Error(MESSAGES.http(trainResponse.status));
           }
 
-          const csvText = await response.text();
-          const parsed = parseCsv(csvText);
+          const [vsCsvText, trainCsvText] = await Promise.all([
+            vsResponse.text(),
+            trainResponse.text(),
+          ]);
 
-          if (parsed.length < 2) {
+          const parsed = parseCsv(vsCsvText);
+          const trainParsed = parseCsv(trainCsvText);
+
+          if (parsed.length < 2 || trainParsed.length < 2) {
             throw new Error(MESSAGES.csvMissingRows);
           }
 
           const headerMap = buildHeaderMap(parsed[0]);
+          const trainHeaderMap = buildTrainHeaderMap(trainParsed[0]);
 
           if (headerMap.username === -1) {
             throw new Error(MESSAGES.missingUsername);
+          }
+
+          const trainMissingColumns = trainExpectedColumns.filter(
+            (column) => trainHeaderMap[column] < 0,
+          );
+          if (trainMissingColumns.length > 0) {
+            throw new Error(
+              MESSAGES.trainMissingColumns(trainMissingColumns.join(", ")),
+            );
+          }
+
+          const today = new Date();
+          const todayUtcDay = Date.UTC(
+            today.getUTCFullYear(),
+            today.getUTCMonth(),
+            today.getUTCDate(),
+          );
+          const recentConductors = new Set();
+
+          for (let i = 1; i < trainParsed.length; i += 1) {
+            const cells = trainParsed[i];
+            const conductor = getValue(cells, trainHeaderMap.conductor);
+            if (!conductor) {
+              continue;
+            }
+
+            const timestamp = parseDateValue(
+              getValue(cells, trainHeaderMap.date),
+            );
+            if (timestamp === null) {
+              continue;
+            }
+
+            const daysSince = daysSinceTimestamp(timestamp, todayUtcDay);
+            if (daysSince !== null && daysSince < CONDUCTOR_COOLDOWN_DAYS) {
+              recentConductors.add(normalizeUsername(conductor));
+            }
           }
 
           const dataRows = [];
@@ -600,24 +775,44 @@
               continue;
             }
 
-            if (state.excludedUsers.has(normalizeUsername(username))) {
+            const normalizedUser = normalizeUsername(username);
+            if (
+              state.excludedUsers.has(normalizedUser) ||
+              recentConductors.has(normalizedUser)
+            ) {
               continue;
             }
 
-            const dayNumbers = [
-              toNumber(getValue(cells, headerMap.radar)),
-              toNumber(getValue(cells, headerMap.construction)),
-              toNumber(getValue(cells, headerMap.tech)),
-              toNumber(getValue(cells, headerMap.hero)),
-              toNumber(getValue(cells, headerMap.mobilization)),
-              toNumber(getValue(cells, headerMap.buster)),
-            ].filter((value) => value !== null);
+            const radar = getValue(cells, headerMap.radar);
+            const construction = getValue(cells, headerMap.construction);
+            const tech = getValue(cells, headerMap.tech);
+            const hero = getValue(cells, headerMap.hero);
+            const mobilization = getValue(cells, headerMap.mobilization);
+            const buster = getValue(cells, headerMap.buster);
 
-            const totalScore = toNumber(
-              getValue(cells, headerMap["total score"]),
+            let totalScore = getValue(cells, headerMap["total score"]);
+
+            const dayNumbers = [
+              toNumber(radar),
+              toNumber(construction),
+              toNumber(tech),
+              toNumber(hero),
+              toNumber(mobilization),
+              toNumber(buster),
+            ];
+            const validDayNumbers = dayNumbers.filter(
+              (value) => value !== null,
             );
+
+            if (!totalScore && validDayNumbers.length > 0) {
+              totalScore = String(
+                validDayNumbers.reduce((acc, value) => acc + value, 0),
+              );
+            }
+
             const computedWeeklyTotal =
-              totalScore ?? dayNumbers.reduce((acc, value) => acc + value, 0);
+              toNumber(totalScore) ??
+              validDayNumbers.reduce((acc, value) => acc + value, 0);
 
             dataRows.push({
               username,
