@@ -48,7 +48,7 @@
       </div>
 
       <p class="stats-event-note">
-        O evento especial vai de 5 de abril ate que todos tenham estado no trem
+        O novo train tracker vai de 2 de junho
       </p>
 
       <div
@@ -57,7 +57,7 @@
         aria-label="Visualização de estatísticas"
       >
         <button id="btn-special" class="stats-toggle-btn active" type="button">
-          Evento especial
+          Novo train tracker
         </button>
         <button id="btn-alltime" class="stats-toggle-btn" type="button">
           Todos os tempos
@@ -117,7 +117,7 @@
       const ignoreListUrl = "../data/train-tracker-ignore.json";
       const expectedColumns = ["date", "conductor", "vip"];
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
-      const SPECIAL_EVENT_CUTOFF = Date.UTC(2026, 3, 5); // April 5, 2026
+      const SPECIAL_EVENT_CUTOFF = Date.UTC(2026, 5, 2); // June 2, 2026
       const LOCALE = "pt-BR";
       const MESSAGES = {
         loading: "Carregando dados do train tracker...",
