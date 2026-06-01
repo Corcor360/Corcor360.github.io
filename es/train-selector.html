@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Train Selector</title>
+    <title>Selector de Train</title>
     <link rel="stylesheet" href="../vs-tracker.css" />
     <style>
       .subtitle {
@@ -143,18 +143,18 @@
   <body>
     <main class="page">
       <div class="title-row">
-        <h1>Train Selector</h1>
-        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+        <h1>Selector de Train</h1>
+        <a class="back-link" href="PPLE-Home.html">Volver al inicio</a>
       </div>
       <p class="subtitle">
-        Uses live VS Tracker data to randomly assign 5 Drivers, 5 VIP, and 5
-        Substitute members from the top 20 ranked players.
+        Usa datos en vivo de VS Tracker para asignar aleatoriamente 5
+        conductores, 5 VIP y 5 suplentes de los 20 mejores jugadores.
       </p>
       <div class="lang-switch">
-        <label for="language-select">Language</label>
+        <label for="language-select">Idioma</label>
         <select id="language-select" aria-label="Select language">
-          <option value="../en/train-selector.html" selected>English</option>
-          <option value="../es/train-selector.html">Español</option>
+          <option value="../en/train-selector.html">English</option>
+          <option value="../es/train-selector.html" selected>Español</option>
           <option value="../pt/train-selector.html">Português</option>
         </select>
       </div>
@@ -166,7 +166,7 @@
           type="button"
           disabled
         >
-          Generate Random Teams
+          Generar equipos aleatorios
         </button>
         <button
           id="export-btn"
@@ -174,55 +174,55 @@
           type="button"
           disabled
         >
-          Export CSV
+          Exportar CSV
         </button>
       </div>
 
-      <h2 class="section-title">Top 20 Players (Source Pool)</h2>
+      <h2 class="section-title">Top 20 jugadores (grupo fuente)</h2>
       <div class="table-wrap">
         <table aria-label="Top 20 source pool">
           <thead>
             <tr>
-              <th scope="col">Rank</th>
-              <th scope="col">Username</th>
-              <th scope="col">Total Score</th>
+              <th scope="col">Rango</th>
+              <th scope="col">Usuario</th>
+              <th scope="col">Puntuación total</th>
             </tr>
           </thead>
           <tbody id="pool-body"></tbody>
         </table>
       </div>
 
-      <h2 class="section-title">Current Random Selection</h2>
+      <h2 class="section-title">Selección aleatoria actual</h2>
       <div class="selection-grid">
         <section class="role-card" aria-labelledby="driver-title">
-          <h3 id="driver-title">Driver</h3>
+          <h3 id="driver-title">Conductor</h3>
           <p class="role-count" id="driver-count">0 / 5</p>
           <ol id="driver-list" class="role-list"></ol>
-          <p id="driver-empty" class="role-empty">No assignments yet.</p>
+          <p id="driver-empty" class="role-empty">Sin asignaciones aún.</p>
         </section>
 
         <section class="role-card" aria-labelledby="vip-title">
           <h3 id="vip-title">VIP</h3>
           <p class="role-count" id="vip-count">0 / 5</p>
           <ol id="vip-list" class="role-list"></ol>
-          <p id="vip-empty" class="role-empty">No assignments yet.</p>
+          <p id="vip-empty" class="role-empty">Sin asignaciones aún.</p>
         </section>
 
         <section class="role-card" aria-labelledby="substitute-title">
-          <h3 id="substitute-title">Substitute</h3>
+          <h3 id="substitute-title">Suplente</h3>
           <p class="role-count" id="substitute-count">0 / 5</p>
           <ol id="substitute-list" class="role-list"></ol>
-          <p id="substitute-empty" class="role-empty">No assignments yet.</p>
+          <p id="substitute-empty" class="role-empty">Sin asignaciones aún.</p>
         </section>
       </div>
 
       <p id="status-message" class="status" role="status" aria-live="polite">
-        Loading tracker data...
+        Cargando datos del tracker...
       </p>
 
       <p class="note">
-        Players who were conductor in the last 14 days are excluded from the
-        pool before random assignment.
+        Los jugadores que fueron conductor en los últimos 14 días se excluyen
+        del grupo antes de la asignación aleatoria.
       </p>
     </main>
 
@@ -278,26 +278,26 @@
       const trainExpectedColumns = ["date", "conductor", "vip"];
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
       const CONDUCTOR_COOLDOWN_DAYS = 14;
-      const LOCALE = "en-US";
+      const LOCALE = "es-ES";
       const MESSAGES = {
-        loading: "Loading tracker data...",
+        loading: "Cargando datos del tracker...",
         http: (status) => `HTTP ${status}`,
-        csvMissingRows: "CSV is empty or missing data rows.",
-        missingUsername: "CSV must include a Username column.",
-        missingColumns: (columns) => `Missing required columns: ${columns}.`,
+        csvMissingRows: "El CSV está vacío o no contiene filas de datos.",
+        missingUsername: "El CSV debe incluir una columna Username.",
+        missingColumns: (columns) => `Faltan columnas requeridas: ${columns}.`,
         trainMissingColumns: (columns) =>
-          `Train Tracker is missing required columns: ${columns}.`,
-        noValidRows: "No valid rows found in the CSV.",
+          `En Train Tracker faltan columnas requeridas: ${columns}.`,
+        noValidRows: "No se encontraron filas válidas en el CSV.",
         ignoreInvalid:
-          "Ignore file is invalid. Expected JSON object with an exclude array.",
+          "El archivo de exclusión no es válido. Se esperaba un objeto JSON con un arreglo exclude.",
         notEnoughTopPlayers:
-          "Need at least 15 eligible players after exclusions and 14-day conductor cooldown.",
+          "Se necesitan al menos 15 jugadores elegibles después de las exclusiones y el enfriamiento de 14 días para conductor.",
         ready: (rowCount) =>
-          `Loaded top ${rowCount} eligible players from VS Tracker after exclusions. Click Generate Random Teams to pick 5 Driver, 5 VIP, and 5 Substitute entries.`,
+          `Se cargaron ${rowCount} jugadores elegibles del VS Tracker después de las exclusiones. Haz clic en Generar equipos aleatorios para elegir 5 conductores, 5 VIP y 5 suplentes.`,
         randomDone:
-          "Random teams generated. Use Export CSV to download the current selection.",
+          "Equipos aleatorios generados. Usa Exportar CSV para descargar la selección actual.",
         loadError: (message) =>
-          `Unable to load tracker data from Google Sheets. ${message}`,
+          `No se pudieron cargar los datos del tracker desde Google Sheets. ${message}`,
       };
 
       const state = {
@@ -650,7 +650,7 @@
         const rows = [["Name", "Role"]];
 
         state.assignment.driver.forEach((person) => {
-          rows.push([person.username, "Driver"]);
+          rows.push([person.username, "Conductor"]);
         });
 
         state.assignment.vip.forEach((person) => {
@@ -658,7 +658,7 @@
         });
 
         state.assignment.substitute.forEach((person) => {
-          rows.push([person.username, "Substitute"]);
+          rows.push([person.username, "Suplente"]);
         });
 
         return rows.map((row) => row.map(escapeCsv).join(",")).join("\n");

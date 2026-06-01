@@ -33,11 +33,27 @@
   <body>
     <main>
       <h1>Redirecting...</h1>
-      <p>Train Selector is currently available in English. Redirecting...</p>
+      <p>Detecting your language preference. Redirecting...</p>
     </main>
 
     <script>
-      window.location.href = "en/train-selector.html";
+      function getLanguagePath() {
+        const supported = { en: "en", es: "es", pt: "pt" };
+        const browserLangs = navigator.languages || [navigator.language];
+
+        for (const browserLang of browserLangs) {
+          const langCode = browserLang.split("-")[0].toLowerCase();
+          if (supported[langCode]) {
+            return supported[langCode];
+          }
+        }
+
+        return "en";
+      }
+
+      const lang = getLanguagePath();
+      const targetPage = "train-selector.html";
+      window.location.href = `${lang}/${targetPage}`;
     </script>
   </body>
 </html>
