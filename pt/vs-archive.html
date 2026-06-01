@@ -423,6 +423,13 @@
               continue;
             }
 
+            const hasAnyValueAfterUsername = cells
+              .slice(headerMap.username + 1)
+              .some((value) => value.trim() !== "");
+            if (!hasAnyValueAfterUsername) {
+              continue;
+            }
+
             const username = getValue(cells, headerMap.username);
             const radar = getValue(cells, headerMap.radar);
             const construction = getValue(cells, headerMap.construction);
