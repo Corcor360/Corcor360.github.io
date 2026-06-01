@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Train Selector</title>
+    <link rel="stylesheet" href="../vs-tracker.css" />
+    <style>
+      .subtitle {
+        margin-bottom: 0.7rem;
+      }
+
+      .lang-switch {
+        margin: 0.75rem 0 1.1rem;
+      }
+
+      .lang-switch label {
+        display: inline-block;
+        margin-right: 0.55rem;
+        font-weight: 700;
+      }
+
+      .lang-switch select {
+        width: min(280px, 100%);
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #3d5f56;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-bottom: 1rem;
+      }
+
+      .controls button {
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 0.5rem 0.85rem;
+        cursor: pointer;
+      }
+
+      .controls button:hover:enabled {
+        background: #23463c;
+      }
+
+      .controls button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .selection-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(190px, 1fr));
+        gap: 0.8rem;
+        margin: 1rem 0;
+      }
+
+      .selection-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #f8fcf9;
+        padding: 0.65rem;
+      }
+
+      .selection-card h2 {
+        margin: 0 0 0.45rem;
+        font-size: 1.02rem;
+      }
+
+      .selection-card ol {
+        margin: 0;
+        padding-left: 1.3rem;
+      }
+
+      .selection-card li {
+        margin-bottom: 0.2rem;
+      }
+
+      .summary {
+        margin-top: 0.2rem;
+        margin-bottom: 0.8rem;
+        font-size: 0.94rem;
+      }
+
+      .summary strong {
+        color: #22443a;
+      }
+
+      .section-title {
+        margin: 1.1rem 0 0.6rem;
+        font-size: 1.05rem;
+      }
+
+      .role-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fdfefc;
+        padding: 0.7rem 0.8rem;
+      }
+
+      .role-card h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .role-count {
+        margin: 0.2rem 0 0.5rem;
+        color: #35544b;
+        font-size: 0.9rem;
+      }
+
+      .role-list {
+        margin: 0;
+        padding-left: 1.2rem;
+      }
+
+      .role-list li {
+        margin-bottom: 0.2rem;
+      }
+
+      .role-empty {
+        margin: 0;
+        color: #5a6a61;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 920px) {
+        .selection-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="title-row">
+        <h1>Train Selector</h1>
+        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+      </div>
+      <p class="subtitle">
+        Uses live VS Tracker data to randomly assign 5 Drivers, 5 VIP, and 5
+        Substitute members from the top 20 ranked players.
+      </p>
+      <div class="lang-switch">
+        <label for="language-select">Language</label>
+        <select id="language-select" aria-label="Select language">
+          <option value="../en/train-selector.html" selected>English</option>
+        </select>
+      </div>
+
+      <div class="controls">
+        <button
+          id="generate-btn"
+          class="btn btn-primary"
+          type="button"
+          disabled
+        >
+          Generate Random Teams
+        </button>
+        <button
+          id="export-btn"
+          class="btn btn-secondary"
+          type="button"
+          disabled
+        >
+          Export CSV
+        </button>
+      </div>
+
+      <h2 class="section-title">Top 20 Players (Source Pool)</h2>
+      <div class="table-wrap">
+        <table aria-label="Top 20 source pool">
+          <thead>
+            <tr>
+              <th scope="col">Rank</th>
+              <th scope="col">Username</th>
+              <th scope="col">Total Score</th>
+            </tr>
+          </thead>
+          <tbody id="pool-body"></tbody>
+        </table>
+      </div>
+
+      <h2 class="section-title">Current Random Selection</h2>
+      <div class="selection-grid">
+        <section class="role-card" aria-labelledby="driver-title">
+          <h3 id="driver-title">Driver</h3>
+          <p class="role-count" id="driver-count">0 / 5</p>
+          <ol id="driver-list" class="role-list"></ol>
+          <p id="driver-empty" class="role-empty">No assignments yet.</p>
+        </section>
+
+        <section class="role-card" aria-labelledby="vip-title">
+          <h3 id="vip-title">VIP</h3>
+          <p class="role-count" id="vip-count">0 / 5</p>
+          <ol id="vip-list" class="role-list"></ol>
+          <p id="vip-empty" class="role-empty">No assignments yet.</p>
+        </section>
+
+        <section class="role-card" aria-labelledby="substitute-title">
+          <h3 id="substitute-title">Substitute</h3>
+          <p class="role-count" id="substitute-count">0 / 5</p>
+          <ol id="substitute-list" class="role-list"></ol>
+          <p id="substitute-empty" class="role-empty">No assignments yet.</p>
+        </section>
+      </div>
+
+      <p id="status-message" class="status" role="status" aria-live="polite">
+        Loading tracker data...
+      </p>
+
+      <p class="note">
+        Each click of Generate Random Teams creates a new random assignment from
+        the same top 20 pool.
+      </p>
+    </main>
+
+    <script>
+      const poolBody = document.getElementById("pool-body");
+      const statusMessage = document.getElementById("status-message");
+      const languageSelect = document.getElementById("language-select");
+      const generateBtn = document.getElementById("generate-btn");
+      const exportBtn = document.getElementById("export-btn");
+
+      const roleViews = {
+        driver: {
+          list: document.getElementById("driver-list"),
+          empty: document.getElementById("driver-empty"),
+          count: document.getElementById("driver-count"),
+          label: "Driver",
+        },
+        vip: {
+          list: document.getElementById("vip-list"),
+          empty: document.getElementById("vip-empty"),
+          count: document.getElementById("vip-count"),
+          label: "VIP",
+        },
+        substitute: {
+          list: document.getElementById("substitute-list"),
+          empty: document.getElementById("substitute-empty"),
+          count: document.getElementById("substitute-count"),
+          label: "Substitute",
+        },
+      };
+
+      languageSelect.addEventListener("change", (event) => {
+        window.location.href = event.target.value;
+      });
+
+      const csvUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQOJi45FrVzpw00_C8KsQ_qXgYKvhULP_GzqHSKZCIrf0eWPqc3QwLoudLlzfVIvwcAYCNf8JkpAk46/pub?output=csv";
+      const ignoreUrl = "../data/train-selector-ignore.json";
+      const expectedColumns = [
+        "rank",
+        "username",
+        "radar",
+        "construction",
+        "tech",
+        "hero",
+        "mobilization",
+        "buster",
+        "daily average",
+        "total score",
+      ];
+      const LOCALE = "en-US";
+      const MESSAGES = {
+        loading: "Loading tracker data...",
+        http: (status) => `HTTP ${status}`,
+        csvMissingRows: "CSV is empty or missing data rows.",
+        missingUsername: "CSV must include a Username column.",
+        noValidRows: "No valid rows found in the CSV.",
+        ignoreInvalid:
+          "Ignore file is invalid. Expected JSON object with an exclude array.",
+        notEnoughTopPlayers:
+          "Need at least 15 valid players in the top 20 pool to randomize.",
+        ready: (rowCount) =>
+          `Loaded top ${rowCount} players. Click Generate Random Teams to pick 5 Driver, 5 VIP, and 5 Substitute entries.`,
+        randomDone:
+          "Random teams generated. Use Export CSV to download the current selection.",
+        loadError: (message) =>
+          `Unable to load tracker data from Google Sheets. ${message}`,
+      };
+
+      const state = {
+        topPlayers: [],
+        excludedUsers: new Set(),
+        assignment: {
+          driver: [],
+          vip: [],
+          substitute: [],
+        },
+      };
+
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status";
+        if (type) {
+          statusMessage.classList.add(type);
+        }
+      }
+
+      function normalizeHeader(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, "");
+      }
+
+      function parseCsvLine(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
+      }
+
+      function parseCsv(text) {
+        return text
+          .split(/\r?\n/)
+          .filter((line) => line.trim() !== "")
+          .map((line) => parseCsvLine(line).map((cell) => cell.trim()));
+      }
+
+      function toNumber(value) {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        const normalized = String(value).replace(/,/g, "").trim();
+        if (normalized === "") {
+          return null;
+        }
+        const num = Number(normalized);
+        return Number.isFinite(num) ? num : null;
+      }
+
+      function formatScore(value) {
+        const numericValue = toNumber(value);
+        if (numericValue === null) {
+          return value;
+        }
+        return numericValue.toLocaleString(LOCALE);
+      }
+
+      function buildHeaderMap(headerRow) {
+        const normalizedHeader = headerRow.map((value) =>
+          normalizeHeader(value),
+        );
+        const aliases = {
+          rank: ["rank"],
+          username: ["username", "user", "name"],
+          radar: ["radar", "monday", "mon"],
+          construction: ["construction", "tuesday", "tue", "tues"],
+          tech: ["tech", "wednesday", "wed"],
+          hero: ["hero", "thursday", "thu", "thur", "thurs"],
+          mobilization: ["mobilization", "friday", "fri"],
+          buster: ["buster", "saturday", "sat"],
+          "daily average": ["dailyaverage", "average", "avg"],
+          "total score": ["totalscore", "total"],
+        };
+
+        const map = {};
+
+        for (const key of expectedColumns) {
+          const aliasList = aliases[key] || [key];
+          map[key] = normalizedHeader.findIndex((headerName) =>
+            aliasList.includes(headerName),
+          );
+        }
+
+        return map;
+      }
+
+      function getValue(cells, index) {
+        if (index < 0 || index >= cells.length) {
+          return "";
+        }
+        return cells[index] || "";
+      }
+
+      function normalizeUsername(value) {
+        return String(value || "").trim().toLowerCase();
+      }
+
+      async function loadIgnoreList() {
+        const response = await fetch(ignoreUrl, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(MESSAGES.http(response.status));
+        }
+
+        const data = await response.json();
+        if (!data || !Array.isArray(data.exclude)) {
+          throw new Error(MESSAGES.ignoreInvalid);
+        }
+
+        state.excludedUsers = new Set(
+          data.exclude
+            .map((name) => normalizeUsername(name))
+            .filter((name) => name !== ""),
+        );
+      }
+
+      function shuffleArray(items) {
+        const arr = [...items];
+        for (let i = arr.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function renderPoolRows(players) {
+        poolBody.innerHTML = "";
+
+        players.forEach((player, index) => {
+          const row = document.createElement("tr");
+
+          const rankCell = document.createElement("td");
+          rankCell.textContent = String(index + 1);
+
+          const userCell = document.createElement("td");
+          userCell.textContent = player.username;
+          userCell.className = "name-col";
+
+          const scoreCell = document.createElement("td");
+          scoreCell.textContent = formatScore(player.weeklyTotal);
+          scoreCell.classList.add(
+            player.weeklyTotal < 43200000 ? "score-red" : "score-green",
+          );
+
+          row.appendChild(rankCell);
+          row.appendChild(userCell);
+          row.appendChild(scoreCell);
+          poolBody.appendChild(row);
+        });
+      }
+
+      function renderAssignment() {
+        ["driver", "vip", "substitute"].forEach((roleKey) => {
+          const roleState = state.assignment[roleKey];
+          const view = roleViews[roleKey];
+          view.list.innerHTML = "";
+          view.count.textContent = `${roleState.length} / 5`;
+
+          if (roleState.length === 0) {
+            view.empty.style.display = "block";
+            return;
+          }
+
+          view.empty.style.display = "none";
+          roleState.forEach((person) => {
+            const item = document.createElement("li");
+            item.textContent = person.username;
+            view.list.appendChild(item);
+          });
+        });
+
+        const hasAssignments =
+          state.assignment.driver.length +
+            state.assignment.vip.length +
+            state.assignment.substitute.length >
+          0;
+        exportBtn.disabled = !hasAssignments;
+      }
+
+      function generateRandomTeams() {
+        if (state.topPlayers.length < 15) {
+          setStatus(MESSAGES.notEnoughTopPlayers, "error");
+          return;
+        }
+
+        const randomized = shuffleArray(state.topPlayers).slice(0, 15);
+
+        state.assignment.driver = randomized.slice(0, 5);
+        state.assignment.vip = randomized.slice(5, 10);
+        state.assignment.substitute = randomized.slice(10, 15);
+
+        renderAssignment();
+        setStatus(MESSAGES.randomDone, "success");
+      }
+
+      function escapeCsv(value) {
+        const text = String(value ?? "");
+        if (text.includes('"') || text.includes(",") || text.includes("\n")) {
+          return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+      }
+
+      function buildCsvContent() {
+        const rows = [["Name", "Role"]];
+
+        state.assignment.driver.forEach((person) => {
+          rows.push([person.username, "Driver"]);
+        });
+
+        state.assignment.vip.forEach((person) => {
+          rows.push([person.username, "VIP"]);
+        });
+
+        state.assignment.substitute.forEach((person) => {
+          rows.push([person.username, "Substitute"]);
+        });
+
+        return rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
+      }
+
+      function exportCsv() {
+        const csvContent = buildCsvContent();
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        const stamp = new Date().toISOString().slice(0, 10);
+        link.href = url;
+        link.download = `train-selector-${stamp}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+      }
+
+      async function loadTrackerData() {
+        setStatus(MESSAGES.loading);
+
+        try {
+          await loadIgnoreList();
+
+          const response = await fetch(csvUrl, { cache: "no-store" });
+
+          if (!response.ok) {
+            throw new Error(MESSAGES.http(response.status));
+          }
+
+          const csvText = await response.text();
+          const parsed = parseCsv(csvText);
+
+          if (parsed.length < 2) {
+            throw new Error(MESSAGES.csvMissingRows);
+          }
+
+          const headerMap = buildHeaderMap(parsed[0]);
+
+          if (headerMap.username === -1) {
+            throw new Error(MESSAGES.missingUsername);
+          }
+
+          const dataRows = [];
+
+          for (let i = 1; i < parsed.length; i += 1) {
+            const cells = parsed[i];
+            const hasAnyValue = cells.some((value) => value.trim() !== "");
+            if (!hasAnyValue) {
+              continue;
+            }
+
+            const hasAnyValueAfterUsername = cells
+              .slice(headerMap.username + 1)
+              .some((value) => value.trim() !== "");
+            if (!hasAnyValueAfterUsername) {
+              continue;
+            }
+
+            const username = getValue(cells, headerMap.username);
+            if (!username) {
+              continue;
+            }
+
+            if (state.excludedUsers.has(normalizeUsername(username))) {
+              continue;
+            }
+
+            const dayNumbers = [
+              toNumber(getValue(cells, headerMap.radar)),
+              toNumber(getValue(cells, headerMap.construction)),
+              toNumber(getValue(cells, headerMap.tech)),
+              toNumber(getValue(cells, headerMap.hero)),
+              toNumber(getValue(cells, headerMap.mobilization)),
+              toNumber(getValue(cells, headerMap.buster)),
+            ].filter((value) => value !== null);
+
+            const totalScore = toNumber(
+              getValue(cells, headerMap["total score"]),
+            );
+            const computedWeeklyTotal =
+              totalScore ?? dayNumbers.reduce((acc, value) => acc + value, 0);
+
+            dataRows.push({
+              username,
+              weeklyTotal: computedWeeklyTotal,
+            });
+          }
+
+          if (dataRows.length === 0) {
+            throw new Error(MESSAGES.noValidRows);
+          }
+
+          dataRows.sort((a, b) => b.weeklyTotal - a.weeklyTotal);
+          state.topPlayers = dataRows.slice(0, 20);
+
+          renderPoolRows(state.topPlayers);
+          generateBtn.disabled = state.topPlayers.length < 15;
+          setStatus(MESSAGES.ready(state.topPlayers.length), "success");
+        } catch (error) {
+          poolBody.innerHTML = "";
+          generateBtn.disabled = true;
+          exportBtn.disabled = true;
+          setStatus(MESSAGES.loadError(error.message), "error");
+        }
+      }
+
+      generateBtn.addEventListener("click", () => {
+        generateRandomTeams();
+      });
+
+      exportBtn.addEventListener("click", () => {
+        exportCsv();
+      });
+
+      loadTrackerData();
+    </script>
+  </body>
+</html>
