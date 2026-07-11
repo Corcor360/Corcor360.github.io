@@ -1,6 +1,46 @@
 [
   {
     "labels": {
+      "en": "Week 27 (Jun 28-Jul 4, 2026)",
+      "es": "Semana 27 (28 jun-4 jul 2026)",
+      "pt": "Semana 27 (28 jun-4 jul 2026)"
+    },
+    "csv": "2026-W27.csv"
+  },
+  {
+    "labels": {
+      "en": "Week 26 (Jun 21-27, 2026)",
+      "es": "Semana 26 (21-27 jun 2026)",
+      "pt": "Semana 26 (21-27 jun 2026)"
+    },
+    "csv": "2026-W26.csv"
+  },
+  {
+    "labels": {
+      "en": "Week 25 (Jun 14-20, 2026)",
+      "es": "Semana 25 (14-20 jun 2026)",
+      "pt": "Semana 25 (14-20 jun 2026)"
+    },
+    "csv": "2026-W25.csv"
+  },
+  {
+    "labels": {
+      "en": "Week 24 (Jun 7-13, 2026)",
+      "es": "Semana 24 (7-13 jun 2026)",
+      "pt": "Semana 24 (7-13 jun 2026)"
+    },
+    "csv": "2026-W24.csv"
+  },
+  {
+    "labels": {
+      "en": "Week 23 (May 31-Jun 6, 2026)",
+      "es": "Semana 23 (31 may-6 jun 2026)",
+      "pt": "Semana 23 (31 mai-6 jun 2026)"
+    },
+    "csv": "2026-W23.csv"
+  },
+  {
+    "labels": {
       "en": "Week 22 (May 24-30, 2026)",
       "es": "Semana 22 (24-30 may 2026)",
       "pt": "Semana 22 (24-30 mai 2026)"
