@@ -491,6 +491,7 @@
         buster: "Buster",
       };
       const metricKeys = Object.keys(metricLabels);
+      const usernameAliasUrl = "../data/user-aliases.json";
       const expectedColumns = [
         "username",
         "radar",
@@ -550,6 +551,8 @@
       let filteredUsers = [];
       let rangeStartIndex = 0;
       let rangeEndIndex = 0;
+      let usernameAliasLookup = new Map();
+      let usernameCanonicalDisplayLookup = new Map();
 
       function getMetricBaseline(metricKey) {
         return metricKey === "totalScore" ? 43200000 : 7200000;
@@ -768,6 +771,54 @@
         return String(value).toLowerCase().trim().replace(/\s+/g, "");
       }
 
+      function applyUsernameAliasGroups(aliasGroups) {
+        usernameAliasLookup = new Map();
+        usernameCanonicalDisplayLookup = new Map();
+
+        if (!Array.isArray(aliasGroups)) {
+          return;
+        }
+
+        aliasGroups.forEach((group) => {
+          if (!group || typeof group !== "object") {
+            return;
+          }
+
+          const canonical =
+            typeof group.canonical === "string" ? group.canonical.trim() : "";
+          if (!canonical) {
+            return;
+          }
+
+          const canonicalKey = normalizeUsernameKey(canonical);
+          usernameCanonicalDisplayLookup.set(canonicalKey, canonical);
+
+          const aliases = Array.isArray(group.aliases) ? group.aliases : [];
+          aliases.forEach((alias) => {
+            if (typeof alias !== "string") {
+              return;
+            }
+            const aliasKey = normalizeUsernameKey(alias);
+            if (aliasKey) {
+              usernameAliasLookup.set(aliasKey, canonicalKey);
+            }
+          });
+        });
+      }
+
+      function resolveUsernameKey(value) {
+        const normalizedKey = normalizeUsernameKey(value);
+        return usernameAliasLookup.get(normalizedKey) || normalizedKey;
+      }
+
+      function resolveUsernameDisplay(value) {
+        const canonicalKey = resolveUsernameKey(value);
+        return (
+          usernameCanonicalDisplayLookup.get(canonicalKey) ||
+          String(value).trim()
+        );
+      }
+
       function getEntryLabel(entry) {
         if (entry.labels && typeof entry.labels === "object") {
           if (
@@ -858,6 +909,20 @@
         return metricValueMap;
       }
 
+      async function loadUsernameAliasGroups() {
+        try {
+          const response = await fetch(usernameAliasUrl, { cache: "no-store" });
+          if (!response.ok) {
+            return;
+          }
+
+          const aliasGroups = await response.json();
+          applyUsernameAliasGroups(aliasGroups);
+        } catch (error) {
+          applyUsernameAliasGroups([]);
+        }
+      }
+
       async function loadWeekRows(weekEntry) {
         const response = await fetch(weekEntry.csvPath, { cache: "no-store" });
         if (!response.ok) {
@@ -883,7 +948,7 @@
             continue;
           }
 
-          const usernameKey = normalizeUsernameKey(username);
+          const usernameKey = resolveUsernameKey(username);
 
           const metricValueMap = getMetricValueMap(cells, headerMap);
           const hasMetricData = metricKeys.some(
@@ -894,7 +959,7 @@
           }
 
           rows.push({
-            username,
+            username: resolveUsernameDisplay(username),
             usernameKey,
             metrics: metricValueMap,
           });
@@ -909,7 +974,7 @@
         weeksWithRows.forEach((week, weekIndex) => {
           week.rows.forEach((row) => {
             const usernameKey =
-              row.usernameKey || normalizeUsernameKey(row.username);
+              row.usernameKey || resolveUsernameKey(row.username);
 
             if (!userMap.has(usernameKey)) {
               userMap.set(usernameKey, {
@@ -920,7 +985,6 @@
             }
 
             const userEntry = userMap.get(usernameKey);
-            userEntry.username = row.username;
             userEntry.weeks[weekIndex] = row.metrics;
           });
         });
@@ -1310,6 +1374,8 @@
         setStatus(MESSAGES.loadingManifest);
 
         try {
+          await loadUsernameAliasGroups();
+
           const manifestResponse = await fetch(manifestUrl, {
             cache: "no-store",
           });
