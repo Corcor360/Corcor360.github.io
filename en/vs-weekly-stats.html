@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VS Weekly Stats</title>
+    <link rel="stylesheet" href="../vs-tracker.css" />
+    <style>
+      .page {
+        width: min(1320px, 96vw);
+      }
+
+      .page-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0.85rem 0 1.1rem;
+        padding: 0.4rem 0.7rem;
+        border: 1px solid #b8c8bc;
+        border-radius: 999px;
+        background: #edf4ef;
+        color: #22443a;
+        font-size: 0.92rem;
+      }
+
+      .controls-grid {
+        display: grid;
+        grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+      }
+
+      .control-card,
+      .chart-card,
+      .summary-card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 10px 22px rgba(43, 58, 48, 0.08);
+      }
+
+      .control-card,
+      .summary-card {
+        padding: 1rem;
+      }
+
+      .control-card h2,
+      .chart-card h2,
+      .summary-card h2 {
+        margin: 0 0 0.4rem;
+        font-size: 1.06rem;
+      }
+
+      .control-card p,
+      .chart-card p,
+      .summary-card p {
+        margin-top: 0;
+      }
+
+      .metric-row,
+      .range-row,
+      .user-search {
+        margin-bottom: 0.85rem;
+      }
+
+      .metric-row label,
+      .range-row label,
+      .user-search label {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-weight: 700;
+      }
+
+      .metric-row select,
+      .range-row select,
+      .user-search input {
+        width: 100%;
+        padding: 0.55rem 0.65rem;
+        border-radius: 10px;
+        border: 1px solid #8ca595;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+      }
+
+      .selection-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.55rem;
+        font-size: 0.9rem;
+        color: #395248;
+      }
+
+      .selection-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+
+      .clear-button {
+        padding: 0.38rem 0.7rem;
+        border: 1px solid #b85a5a;
+        border-radius: 999px;
+        background: #fff3f3;
+        color: #8f2929;
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .clear-button:hover {
+        background: #ffe4e4;
+      }
+
+      .clear-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .user-list {
+        max-height: 420px;
+        overflow: auto;
+        padding: 0.2rem;
+        border: 1px solid #d2ddd6;
+        border-radius: 12px;
+        background: #fbfdf9;
+      }
+
+      .user-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.55rem 0.65rem;
+        border-radius: 10px;
+      }
+
+      .user-option:hover {
+        background: var(--row-hover);
+      }
+
+      .user-option + .user-option {
+        margin-top: 0.2rem;
+      }
+
+      .user-option label {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        min-width: 0;
+        cursor: pointer;
+      }
+
+      .user-option input {
+        margin: 0;
+      }
+
+      .user-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .user-weeks {
+        flex-shrink: 0;
+        color: #55756a;
+        font-size: 0.85rem;
+      }
+
+      .user-list-empty {
+        padding: 0.9rem;
+        color: #55756a;
+        text-align: center;
+      }
+
+      .selected-users {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 0.85rem 0 0;
+      }
+
+      .selected-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.38rem 0.62rem;
+        border-radius: 999px;
+        background: #eef5f0;
+        border: 1px solid #bfd2c4;
+        font-size: 0.88rem;
+      }
+
+      .chip-swatch {
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+      }
+
+      .chart-card {
+        padding: 1rem;
+      }
+
+      .chart-meta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.9rem;
+        color: #395248;
+        font-size: 0.93rem;
+      }
+
+      .chart-wrap {
+        border: 1px solid #d2ddd6;
+        border-radius: 14px;
+        background:
+          linear-gradient(180deg, #f9fbf8 0%, #ffffff 100%),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 89px,
+            rgba(47, 93, 80, 0.05) 89px,
+            rgba(47, 93, 80, 0.05) 90px
+          );
+        overflow: auto;
+      }
+
+      .chart-svg {
+        display: block;
+        min-width: 860px;
+        width: 100%;
+        height: auto;
+      }
+
+      .chart-empty {
+        padding: 4rem 1rem;
+        text-align: center;
+        color: #55756a;
+      }
+
+      .chart-axis {
+        font-size: 12px;
+        fill: #4b675d;
+      }
+
+      .chart-grid {
+        stroke: rgba(47, 93, 80, 0.16);
+        stroke-width: 1;
+      }
+
+      .chart-domain {
+        stroke: #5f7a70;
+        stroke-width: 1.4;
+      }
+
+      .chart-baseline {
+        stroke: #c74141;
+        stroke-width: 2;
+        stroke-dasharray: 7 5;
+      }
+
+      .chart-baseline-label {
+        font-size: 12px;
+        fill: #a12d2d;
+        font-weight: 700;
+      }
+
+      .summary-card {
+        margin-top: 1rem;
+      }
+
+      .summary-table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+
+      .summary-table {
+        width: 100%;
+        min-width: 720px;
+        border-collapse: collapse;
+      }
+
+      .summary-table th,
+      .summary-table td {
+        padding: 0.65rem 0.75rem;
+        border-bottom: 1px solid #d5e0d8;
+        text-align: left;
+      }
+
+      .summary-table th {
+        background: var(--accent-soft);
+        color: #183329;
+      }
+
+      .summary-table tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .summary-user {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+      }
+
+      .summary-user .chip-swatch {
+        width: 0.8rem;
+        height: 0.8rem;
+      }
+
+      .table-empty {
+        padding: 0.9rem;
+        text-align: center;
+        color: #55756a;
+      }
+
+      @media (max-width: 960px) {
+        .controls-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .user-list {
+          max-height: 320px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .page {
+          width: min(96vw, 1320px);
+        }
+
+        .chart-card,
+        .control-card,
+        .summary-card {
+          padding: 0.8rem;
+        }
+
+        .selection-meta,
+        .chart-meta {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="title-row">
+        <h1>VS Weekly Stats</h1>
+        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+      </div>
+
+      <p class="subtitle">
+        Compare weekly archive performance across selected users. Data is loaded
+        from <strong>data/vs-archive/manifest.json</strong> and every linked
+        weekly CSV in <strong>data/vs-archive/</strong>.
+      </p>
+      <div class="page-tag">English only for now</div>
+
+      <section class="controls-grid" aria-label="Weekly stats controls">
+        <aside class="control-card">
+          <h2>Compare Users</h2>
+          <p>Select up to 5 users to plot on the weekly trend chart.</p>
+
+          <div class="metric-row">
+            <label for="metric-select">Metric</label>
+            <select id="metric-select">
+              <option value="totalScore">Total Score</option>
+              <option value="radar">Radar</option>
+              <option value="construction">Construction</option>
+              <option value="tech">Tech</option>
+              <option value="hero">Hero</option>
+              <option value="mobilization">Mobilization</option>
+              <option value="buster">Buster</option>
+            </select>
+          </div>
+
+          <div class="range-row">
+            <label for="range-start-select">Start week</label>
+            <select id="range-start-select"></select>
+          </div>
+
+          <div class="range-row">
+            <label for="range-end-select">End week</label>
+            <select id="range-end-select"></select>
+          </div>
+
+          <div class="user-search">
+            <label for="user-search">Search users</label>
+            <input
+              id="user-search"
+              type="search"
+              placeholder="Type a username..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+
+          <div class="selection-meta">
+            <div class="selection-actions">
+              <span id="selection-count">0 selected</span>
+              <button
+                id="clear-selection"
+                class="clear-button"
+                type="button"
+                disabled
+              >
+                Clear all
+              </button>
+            </div>
+            <span id="archive-count">Loading archive weeks...</span>
+          </div>
+
+          <div
+            id="user-list"
+            class="user-list"
+            role="group"
+            aria-label="Selectable users"
+          ></div>
+
+          <div
+            id="selected-users"
+            class="selected-users"
+            aria-live="polite"
+          ></div>
+        </aside>
+
+        <section class="chart-card" aria-label="Weekly stats chart">
+          <h2 id="chart-title">Total Score Trend</h2>
+          <div class="chart-meta">
+            <span id="chart-subtitle">Preparing weekly archive data...</span>
+            <span id="chart-range"></span>
+          </div>
+          <div id="chart-wrap" class="chart-wrap">
+            <div class="chart-empty">Loading chart data...</div>
+          </div>
+        </section>
+      </section>
+
+      <section class="summary-card" aria-label="Selected user summary">
+        <h2>Selected User Summary</h2>
+        <p id="summary-caption">
+          Review the latest, peak, and average values for the selected metric.
+        </p>
+        <div class="summary-table-wrap">
+          <table
+            class="summary-table"
+            aria-label="Selected user metric summary"
+          >
+            <thead>
+              <tr>
+                <th scope="col">User</th>
+                <th scope="col">Weeks With Data</th>
+                <th scope="col">Latest Week</th>
+                <th scope="col">Latest Value</th>
+                <th scope="col">Peak Week</th>
+                <th scope="col">Peak Value</th>
+                <th scope="col">Average Value</th>
+              </tr>
+            </thead>
+            <tbody id="summary-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p id="status-message" class="status" role="status" aria-live="polite">
+        Loading archive manifest...
+      </p>
+    </main>
+
+    <script>
+      const MAX_SELECTED_USERS = 5;
+      const archiveBasePath = "../data/vs-archive/";
+      const manifestUrl = `${archiveBasePath}manifest.json`;
+      const locale = "en";
+      const numberLocale = "en-US";
+      const metricLabels = {
+        totalScore: "Total Score",
+        radar: "Radar",
+        construction: "Construction",
+        tech: "Tech",
+        hero: "Hero",
+        mobilization: "Mobilization",
+        buster: "Buster",
+      };
+      const metricKeys = Object.keys(metricLabels);
+      const expectedColumns = [
+        "username",
+        "radar",
+        "construction",
+        "tech",
+        "hero",
+        "mobilization",
+        "buster",
+        "daily average",
+        "total score",
+      ];
+      const seriesColors = [
+        "#2f5d50",
+        "#b85c38",
+        "#365c9a",
+        "#7a3f88",
+        "#c0851a",
+      ];
+      const MESSAGES = {
+        loadingManifest: "Loading archive manifest...",
+        loadingData: "Loading weekly CSV archive...",
+        loadFailed: (message) => `Unable to load weekly stats. ${message}`,
+        manifestArray: "Manifest must be an array of entries.",
+        noEntries: "No archive entries found in manifest.json.",
+        csvMissingRows: "CSV is empty or missing data rows.",
+        missingUsername: "CSV must include a Username column.",
+        noUsers: "No users with weekly data were found.",
+        selectionLimit: (limit) => `Select up to ${limit} users at a time.`,
+        loaded: (weeks, users) =>
+          `Loaded ${weeks} weeks for ${users} users. Select users to update the chart.`,
+        chartReady: (metric, count) =>
+          `${metric} trend for ${count} selected user${count === 1 ? "" : "s"}.`,
+        emptySelection: "Select at least one user to plot weekly stats.",
+        emptySearch: "No users match the current search.",
+      };
+
+      const statusMessage = document.getElementById("status-message");
+      const metricSelect = document.getElementById("metric-select");
+      const rangeStartSelect = document.getElementById("range-start-select");
+      const rangeEndSelect = document.getElementById("range-end-select");
+      const userSearchInput = document.getElementById("user-search");
+      const userList = document.getElementById("user-list");
+      const selectedUsersContainer = document.getElementById("selected-users");
+      const selectionCount = document.getElementById("selection-count");
+      const archiveCount = document.getElementById("archive-count");
+      const chartTitle = document.getElementById("chart-title");
+      const chartSubtitle = document.getElementById("chart-subtitle");
+      const chartRange = document.getElementById("chart-range");
+      const chartWrap = document.getElementById("chart-wrap");
+      const summaryBody = document.getElementById("summary-body");
+      const summaryCaption = document.getElementById("summary-caption");
+      const clearSelectionButton = document.getElementById("clear-selection");
+
+      let archiveWeeks = [];
+      let users = [];
+      let selectedUsers = new Set();
+      let filteredUsers = [];
+      let rangeStartIndex = 0;
+      let rangeEndIndex = 0;
+
+      function getMetricBaseline(metricKey) {
+        return metricKey === "totalScore" ? 43200000 : 7200000;
+      }
+
+      function getActiveWeeks() {
+        if (archiveWeeks.length === 0) {
+          return [];
+        }
+
+        const startIndex = Math.min(rangeStartIndex, rangeEndIndex);
+        const endIndex = Math.max(rangeStartIndex, rangeEndIndex);
+        return archiveWeeks.slice(startIndex, endIndex + 1);
+      }
+
+      function syncRangeSelection() {
+        if (archiveWeeks.length === 0) {
+          return;
+        }
+
+        if (rangeStartIndex > rangeEndIndex) {
+          [rangeStartIndex, rangeEndIndex] = [rangeEndIndex, rangeStartIndex];
+        }
+
+        rangeStartSelect.value = String(rangeStartIndex);
+        rangeEndSelect.value = String(rangeEndIndex);
+      }
+
+      function populateRangeSelectors() {
+        rangeStartSelect.innerHTML = "";
+        rangeEndSelect.innerHTML = "";
+
+        archiveWeeks.forEach((week, index) => {
+          const startOption = document.createElement("option");
+          startOption.value = String(index);
+          startOption.textContent = week.label;
+          rangeStartSelect.appendChild(startOption);
+
+          const endOption = document.createElement("option");
+          endOption.value = String(index);
+          endOption.textContent = week.label;
+          rangeEndSelect.appendChild(endOption);
+        });
+
+        rangeStartIndex = 0;
+        rangeEndIndex = Math.max(archiveWeeks.length - 1, 0);
+        syncRangeSelection();
+      }
+
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status";
+        if (type) {
+          statusMessage.classList.add(type);
+        }
+      }
+
+      function normalizeHeader(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, "");
+      }
+
+      function parseCsvLine(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let index = 0; index < line.length; index += 1) {
+          const char = line[index];
+
+          if (char === '"') {
+            if (inQuotes && line[index + 1] === '"') {
+              current += '"';
+              index += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
+      }
+
+      function parseCsv(text) {
+        return text
+          .split(/\r?\n/)
+          .filter((line) => line.trim() !== "")
+          .map((line) => parseCsvLine(line).map((cell) => cell.trim()));
+      }
+
+      function toNumber(value) {
+        if (value === null || value === undefined) {
+          return null;
+        }
+
+        const raw = String(value).trim().replace(/\s+/g, "");
+        if (raw === "") {
+          return null;
+        }
+
+        let normalized = raw;
+        const hasComma = normalized.includes(",");
+        const hasDot = normalized.includes(".");
+
+        if (hasComma && hasDot) {
+          if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+            normalized = normalized.replace(/\./g, "").replace(/,/g, ".");
+          } else {
+            normalized = normalized.replace(/,/g, "");
+          }
+        } else if (hasComma) {
+          const commaParts = normalized.split(",");
+          if (
+            commaParts.length > 2 ||
+            (commaParts.length === 2 && commaParts[1].length === 3)
+          ) {
+            normalized = normalized.replace(/,/g, "");
+          } else {
+            normalized = normalized.replace(/,/g, ".");
+          }
+        } else if (hasDot) {
+          const dotParts = normalized.split(".");
+          if (dotParts.length > 2) {
+            normalized = normalized.replace(/\./g, "");
+          }
+        }
+
+        const number = Number(normalized);
+        return Number.isFinite(number) ? number : null;
+      }
+
+      function formatNumber(value) {
+        if (value === null || value === undefined) {
+          return "-";
+        }
+
+        return value.toLocaleString(numberLocale, {
+          maximumFractionDigits: 0,
+        });
+      }
+
+      function formatCompactNumber(value) {
+        if (value === null || value === undefined) {
+          return "-";
+        }
+
+        const absoluteValue = Math.abs(value);
+        if (absoluteValue >= 1000000000) {
+          return `${(value / 1000000000).toFixed(1)}B`;
+        }
+        if (absoluteValue >= 1000000) {
+          return `${(value / 1000000).toFixed(1)}M`;
+        }
+        if (absoluteValue >= 1000) {
+          return `${(value / 1000).toFixed(1)}K`;
+        }
+        return formatNumber(value);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function buildHeaderMap(headerRow) {
+        const normalizedHeader = headerRow.map((value) =>
+          normalizeHeader(value),
+        );
+        const aliases = {
+          username: ["username", "user", "name"],
+          radar: ["radar", "monday", "mon"],
+          construction: ["construction", "tuesday", "tue", "tues"],
+          tech: ["tech", "wednesday", "wed"],
+          hero: ["hero", "thursday", "thu", "thur", "thurs"],
+          mobilization: ["mobilization", "friday", "fri"],
+          buster: ["buster", "saturday", "sat"],
+          "daily average": ["dailyaverage", "average", "avg"],
+          "total score": ["totalscore", "total"],
+        };
+
+        const map = {};
+        for (const key of expectedColumns) {
+          const aliasList = aliases[key] || [key];
+          map[key] = normalizedHeader.findIndex((headerName) =>
+            aliasList.includes(headerName),
+          );
+        }
+
+        return map;
+      }
+
+      function getValue(cells, index) {
+        if (index < 0 || index >= cells.length) {
+          return "";
+        }
+        return cells[index] || "";
+      }
+
+      function normalizeUsernameKey(value) {
+        return String(value).toLowerCase().trim().replace(/\s+/g, "");
+      }
+
+      function getEntryLabel(entry) {
+        if (entry.labels && typeof entry.labels === "object") {
+          if (
+            typeof entry.labels[locale] === "string" &&
+            entry.labels[locale].trim() !== ""
+          ) {
+            return entry.labels[locale];
+          }
+          if (
+            typeof entry.labels.en === "string" &&
+            entry.labels.en.trim() !== ""
+          ) {
+            return entry.labels.en;
+          }
+        }
+
+        return typeof entry.label === "string" ? entry.label.trim() : "";
+      }
+
+      function getEntryCsvPath(entry) {
+        if (typeof entry.csv !== "string") {
+          return "";
+        }
+
+        const value = entry.csv.trim();
+        if (!value) {
+          return "";
+        }
+        if (/^https?:\/\//i.test(value)) {
+          return value;
+        }
+        if (value.includes("/")) {
+          return value;
+        }
+        return `${archiveBasePath}${value}`;
+      }
+
+      function isValidManifestEntry(entry) {
+        return getEntryLabel(entry) !== "" && getEntryCsvPath(entry) !== "";
+      }
+
+      function buildWeekEntries(manifest) {
+        return manifest
+          .filter(isValidManifestEntry)
+          .map((entry) => ({
+            label: getEntryLabel(entry),
+            csvPath: getEntryCsvPath(entry),
+            csvName: typeof entry.csv === "string" ? entry.csv.trim() : "",
+          }))
+          .reverse();
+      }
+
+      function getMetricValueMap(cells, headerMap) {
+        const radar = toNumber(getValue(cells, headerMap.radar));
+        const construction = toNumber(getValue(cells, headerMap.construction));
+        const tech = toNumber(getValue(cells, headerMap.tech));
+        const hero = toNumber(getValue(cells, headerMap.hero));
+        const mobilization = toNumber(getValue(cells, headerMap.mobilization));
+        const buster = toNumber(getValue(cells, headerMap.buster));
+
+        const metricValueMap = {
+          radar,
+          construction,
+          tech,
+          hero,
+          mobilization,
+          buster,
+        };
+
+        const validNumbers = [
+          radar,
+          construction,
+          tech,
+          hero,
+          mobilization,
+          buster,
+        ].filter((value) => value !== null);
+        const totalFromCells = toNumber(
+          getValue(cells, headerMap["total score"]),
+        );
+        const derivedTotal =
+          totalFromCells ??
+          (validNumbers.length > 0
+            ? validNumbers.reduce((sum, value) => sum + value, 0)
+            : null);
+
+        metricValueMap.totalScore = derivedTotal;
+        return metricValueMap;
+      }
+
+      async function loadWeekRows(weekEntry) {
+        const response = await fetch(weekEntry.csvPath, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`${weekEntry.label}: HTTP ${response.status}`);
+        }
+
+        const csvText = await response.text();
+        const parsed = parseCsv(csvText);
+        if (parsed.length < 2) {
+          throw new Error(`${weekEntry.label}: ${MESSAGES.csvMissingRows}`);
+        }
+
+        const headerMap = buildHeaderMap(parsed[0]);
+        if (headerMap.username === -1) {
+          throw new Error(`${weekEntry.label}: ${MESSAGES.missingUsername}`);
+        }
+
+        const rows = [];
+        for (let index = 1; index < parsed.length; index += 1) {
+          const cells = parsed[index];
+          const username = getValue(cells, headerMap.username).trim();
+          if (!username) {
+            continue;
+          }
+
+          const usernameKey = normalizeUsernameKey(username);
+
+          const metricValueMap = getMetricValueMap(cells, headerMap);
+          const hasMetricData = metricKeys.some(
+            (metricKey) => metricValueMap[metricKey] !== null,
+          );
+          if (!hasMetricData) {
+            continue;
+          }
+
+          rows.push({
+            username,
+            usernameKey,
+            metrics: metricValueMap,
+          });
+        }
+
+        return rows;
+      }
+
+      function buildUserDataset(weeksWithRows) {
+        const userMap = new Map();
+
+        weeksWithRows.forEach((week, weekIndex) => {
+          week.rows.forEach((row) => {
+            const usernameKey =
+              row.usernameKey || normalizeUsernameKey(row.username);
+
+            if (!userMap.has(usernameKey)) {
+              userMap.set(usernameKey, {
+                username: row.username,
+                usernameKey,
+                weeks: Array.from({ length: weeksWithRows.length }, () => null),
+              });
+            }
+
+            const userEntry = userMap.get(usernameKey);
+            userEntry.username = row.username;
+            userEntry.weeks[weekIndex] = row.metrics;
+          });
+        });
+
+        return Array.from(userMap.values())
+          .map((user) => {
+            const latestWeek = [...user.weeks]
+              .reverse()
+              .find((week) => week && week.totalScore !== null);
+            const latestTotalScore = latestWeek ? latestWeek.totalScore : -1;
+            const weeksWithData = user.weeks.filter(
+              (week) => week !== null,
+            ).length;
+
+            return {
+              ...user,
+              latestTotalScore,
+              weeksWithData,
+            };
+          })
+          .sort((left, right) => {
+            if (right.latestTotalScore !== left.latestTotalScore) {
+              return right.latestTotalScore - left.latestTotalScore;
+            }
+            return left.username.localeCompare(right.username, undefined, {
+              sensitivity: "base",
+            });
+          });
+      }
+
+      function buildDefaultSelection(userDataset) {
+        return userDataset
+          .slice(0, Math.min(3, MAX_SELECTED_USERS))
+          .map((user) => user.username);
+      }
+
+      function getUserColor(username) {
+        const selectedList = Array.from(selectedUsers);
+        const index = selectedList.indexOf(username);
+        if (index === -1) {
+          return "#8ca595";
+        }
+        return seriesColors[index % seriesColors.length];
+      }
+
+      function updateSelectionCount() {
+        const count = selectedUsers.size;
+        selectionCount.textContent = `${count} selected`;
+        clearSelectionButton.disabled = count === 0;
+      }
+
+      function renderSelectedUsers() {
+        const selectedList = Array.from(selectedUsers);
+        if (selectedList.length === 0) {
+          selectedUsersContainer.innerHTML = "";
+          return;
+        }
+
+        selectedUsersContainer.innerHTML = selectedList
+          .map(
+            (username) =>
+              `<span class="selected-chip"><span class="chip-swatch" style="background:${getUserColor(username)}"></span>${escapeHtml(username)}</span>`,
+          )
+          .join("");
+      }
+
+      function getFilteredUsers() {
+        const query = userSearchInput.value.trim().toLowerCase();
+        const visibleUsers = query
+          ? users.filter((user) => user.username.toLowerCase().includes(query))
+          : [...users];
+
+        return visibleUsers.sort((left, right) =>
+          left.username.localeCompare(right.username, undefined, {
+            sensitivity: "base",
+          }),
+        );
+      }
+
+      function clearSelectedUsers() {
+        if (selectedUsers.size === 0) {
+          return;
+        }
+
+        selectedUsers.clear();
+        updateSelectionCount();
+        renderUserList();
+        renderSelectedUsers();
+        renderChart();
+        renderSummaryTable();
+      }
+
+      function renderUserList() {
+        filteredUsers = getFilteredUsers();
+
+        if (filteredUsers.length === 0) {
+          userList.innerHTML = `<div class="user-list-empty">${MESSAGES.emptySearch}</div>`;
+          return;
+        }
+
+        userList.innerHTML = filteredUsers
+          .map((user) => {
+            const checked = selectedUsers.has(user.username) ? "checked" : "";
+            return `
+              <div class="user-option">
+                <label>
+                  <input type="checkbox" value="${escapeHtml(user.username)}" ${checked} />
+                  <span class="user-name">${escapeHtml(user.username)}</span>
+                </label>
+                <span class="user-weeks">${user.weeksWithData} week${user.weeksWithData === 1 ? "" : "s"}</span>
+              </div>
+            `;
+          })
+          .join("");
+
+        userList.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+          input.addEventListener("change", (event) => {
+            const username = event.target.value;
+            if (event.target.checked) {
+              if (selectedUsers.size >= MAX_SELECTED_USERS) {
+                event.target.checked = false;
+                setStatus(MESSAGES.selectionLimit(MAX_SELECTED_USERS), "error");
+                return;
+              }
+              selectedUsers.add(username);
+            } else {
+              selectedUsers.delete(username);
+            }
+
+            updateSelectionCount();
+            renderSelectedUsers();
+            renderChart();
+            renderSummaryTable();
+          });
+        });
+      }
+
+      function getSelectedUserData() {
+        const selectedList = Array.from(selectedUsers);
+        return users.filter((user) => selectedList.includes(user.username));
+      }
+
+      function getSeriesPoints(user, metricKey) {
+        const activeWeeks = getActiveWeeks();
+        const startIndex = Math.min(rangeStartIndex, rangeEndIndex);
+        return activeWeeks.map((week, index) => ({
+          label: week.label,
+          value: user.weeks[startIndex + index]
+            ? user.weeks[startIndex + index][metricKey]
+            : null,
+        }));
+      }
+
+      function getWeekAxisLabel(week) {
+        if (week && typeof week.csvName === "string") {
+          const csvMatch = week.csvName.match(/W(\d+)/i);
+          if (csvMatch) {
+            return `Week ${csvMatch[1]}`;
+          }
+        }
+
+        if (week && typeof week.label === "string") {
+          const labelMatch = week.label.match(/week\s+(\d+)/i);
+          if (labelMatch) {
+            return `Week ${labelMatch[1]}`;
+          }
+        }
+
+        return "-";
+      }
+
+      function buildPathSegments(points, xScale, yScale) {
+        const segments = [];
+        let currentSegment = [];
+
+        points.forEach((point, index) => {
+          if (point.value === null) {
+            if (currentSegment.length > 0) {
+              segments.push(currentSegment);
+              currentSegment = [];
+            }
+            return;
+          }
+
+          currentSegment.push(`${xScale(index)},${yScale(point.value)}`);
+        });
+
+        if (currentSegment.length > 0) {
+          segments.push(currentSegment);
+        }
+
+        return segments;
+      }
+
+      function renderChart() {
+        const metricKey = metricSelect.value;
+        const metricLabel = metricLabels[metricKey];
+        const selectedData = getSelectedUserData();
+        const activeWeeks = getActiveWeeks();
+
+        chartTitle.textContent = `${metricLabel} Trend`;
+        chartRange.textContent = activeWeeks.length
+          ? `${activeWeeks[0].label} to ${activeWeeks[activeWeeks.length - 1].label}`
+          : "";
+
+        if (selectedData.length === 0) {
+          chartSubtitle.textContent = MESSAGES.emptySelection;
+          chartWrap.innerHTML = `<div class="chart-empty">${MESSAGES.emptySelection}</div>`;
+          setStatus(
+            MESSAGES.loaded(archiveWeeks.length, users.length),
+            "success",
+          );
+          return;
+        }
+
+        const allValues = selectedData.flatMap((user) =>
+          getSeriesPoints(user, metricKey)
+            .map((point) => point.value)
+            .filter((value) => value !== null),
+        );
+
+        const baselineValue = getMetricBaseline(metricKey);
+
+        const maxValue = Math.max(...allValues, baselineValue, 1);
+        const svgWidth = Math.max(920, activeWeeks.length * 92);
+        const svgHeight = 470;
+        const margin = { top: 30, right: 28, bottom: 88, left: 86 };
+        const chartWidth = svgWidth - margin.left - margin.right;
+        const chartHeight = svgHeight - margin.top - margin.bottom;
+        const yTickCount = 5;
+        const yStep = maxValue / yTickCount;
+
+        const xScale = (index) => {
+          if (activeWeeks.length === 1) {
+            return margin.left + chartWidth / 2;
+          }
+          return margin.left + (chartWidth * index) / (activeWeeks.length - 1);
+        };
+        const yScale = (value) =>
+          margin.top + chartHeight - (value / maxValue) * chartHeight;
+        const baselineY = yScale(baselineValue);
+
+        const horizontalGrid = Array.from(
+          { length: yTickCount + 1 },
+          (_, index) => {
+            const value = yStep * index;
+            const y = yScale(value);
+            return `
+            <line class="chart-grid" x1="${margin.left}" y1="${y}" x2="${svgWidth - margin.right}" y2="${y}"></line>
+            <text class="chart-axis" x="${margin.left - 12}" y="${y + 4}" text-anchor="end">${escapeHtml(formatCompactNumber(value))}</text>
+          `;
+          },
+        ).join("");
+
+        const verticalGrid = activeWeeks
+          .map((week, index) => {
+            const x = xScale(index);
+            const axisLabel = getWeekAxisLabel(week);
+            return `
+              <line class="chart-grid" x1="${x}" y1="${margin.top}" x2="${x}" y2="${margin.top + chartHeight}"></line>
+              <text class="chart-axis" x="${x}" y="${svgHeight - 18}" text-anchor="middle">${escapeHtml(axisLabel)}</text>
+            `;
+          })
+          .join("");
+
+        const baselineMarkup = `
+          <line class="chart-baseline" x1="${margin.left}" y1="${baselineY}" x2="${svgWidth - margin.right}" y2="${baselineY}"></line>
+          <text class="chart-baseline-label" x="${svgWidth - margin.right}" y="${baselineY - 8}" text-anchor="end">Baseline ${escapeHtml(formatCompactNumber(baselineValue))}</text>
+        `;
+
+        const seriesMarkup = selectedData
+          .map((user) => {
+            const color = getUserColor(user.username);
+            const points = getSeriesPoints(user, metricKey);
+            const segments = buildPathSegments(points, xScale, yScale);
+            const pathMarkup = segments
+              .map(
+                (segment) =>
+                  `<polyline fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${segment.join(" ")}"></polyline>`,
+              )
+              .join("");
+            const pointMarkup = points
+              .map((point, index) => {
+                if (point.value === null) {
+                  return "";
+                }
+
+                return `
+                  <circle cx="${xScale(index)}" cy="${yScale(point.value)}" r="4.5" fill="${color}" stroke="#ffffff" stroke-width="1.6">
+                    <title>${escapeHtml(user.username)} | ${escapeHtml(point.label)} | ${escapeHtml(metricLabel)}: ${escapeHtml(formatNumber(point.value))}</title>
+                  </circle>
+                `;
+              })
+              .join("");
+
+            return `${pathMarkup}${pointMarkup}`;
+          })
+          .join("");
+
+        chartWrap.innerHTML = `
+          <svg
+            class="chart-svg"
+            viewBox="0 0 ${svgWidth} ${svgHeight}"
+            role="img"
+            aria-label="Weekly ${escapeHtml(metricLabel)} trend chart"
+          >
+            <rect x="0" y="0" width="${svgWidth}" height="${svgHeight}" fill="transparent"></rect>
+            ${horizontalGrid}
+            ${verticalGrid}
+            ${baselineMarkup}
+            <line class="chart-domain" x1="${margin.left}" y1="${margin.top + chartHeight}" x2="${svgWidth - margin.right}" y2="${margin.top + chartHeight}"></line>
+            <line class="chart-domain" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + chartHeight}"></line>
+            ${seriesMarkup}
+          </svg>
+        `;
+
+        chartSubtitle.textContent = MESSAGES.chartReady(
+          metricLabel,
+          selectedData.length,
+        );
+        setStatus(
+          MESSAGES.chartReady(metricLabel, selectedData.length),
+          "success",
+        );
+      }
+
+      function renderSummaryTable() {
+        const metricKey = metricSelect.value;
+        const metricLabel = metricLabels[metricKey];
+        const selectedData = getSelectedUserData();
+        const activeWeeks = getActiveWeeks();
+
+        summaryCaption.textContent = `Review the latest, peak, and average ${metricLabel.toLowerCase()} values for the selected users.`;
+
+        if (selectedData.length === 0) {
+          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="7">${MESSAGES.emptySelection}</td></tr>`;
+          return;
+        }
+
+        summaryBody.innerHTML = selectedData
+          .map((user) => {
+            const color = getUserColor(user.username);
+            const populatedWeeks = activeWeeks
+              .map((week, index) => ({
+                label: week.label,
+                value: user.weeks[
+                  Math.min(rangeStartIndex, rangeEndIndex) + index
+                ]
+                  ? user.weeks[
+                      Math.min(rangeStartIndex, rangeEndIndex) + index
+                    ][metricKey]
+                  : null,
+              }))
+              .filter((point) => point.value !== null);
+
+            const latestPoint =
+              populatedWeeks[populatedWeeks.length - 1] || null;
+            const peakPoint = populatedWeeks.reduce((best, point) => {
+              if (!best || point.value > best.value) {
+                return point;
+              }
+              return best;
+            }, null);
+            const averageValue = populatedWeeks.length
+              ? populatedWeeks.reduce((sum, point) => sum + point.value, 0) /
+                populatedWeeks.length
+              : null;
+
+            return `
+              <tr>
+                <td>
+                  <span class="summary-user"><span class="chip-swatch" style="background:${color}"></span>${escapeHtml(user.username)}</span>
+                </td>
+                <td>${populatedWeeks.length}</td>
+                <td>${latestPoint ? escapeHtml(latestPoint.label) : "-"}</td>
+                <td>${latestPoint ? escapeHtml(formatNumber(latestPoint.value)) : "-"}</td>
+                <td>${peakPoint ? escapeHtml(peakPoint.label) : "-"}</td>
+                <td>${peakPoint ? escapeHtml(formatNumber(peakPoint.value)) : "-"}</td>
+                <td>${averageValue !== null ? escapeHtml(formatNumber(Math.round(averageValue))) : "-"}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      async function loadArchiveData() {
+        setStatus(MESSAGES.loadingManifest);
+
+        try {
+          const manifestResponse = await fetch(manifestUrl, {
+            cache: "no-store",
+          });
+          if (!manifestResponse.ok) {
+            throw new Error(`HTTP ${manifestResponse.status}`);
+          }
+
+          const manifest = await manifestResponse.json();
+          if (!Array.isArray(manifest)) {
+            throw new Error(MESSAGES.manifestArray);
+          }
+
+          archiveWeeks = buildWeekEntries(manifest);
+          if (archiveWeeks.length === 0) {
+            throw new Error(MESSAGES.noEntries);
+          }
+
+          populateRangeSelectors();
+
+          archiveCount.textContent = `${archiveWeeks.length} archived weeks`;
+          setStatus(MESSAGES.loadingData);
+
+          const weeksWithRows = await Promise.all(
+            archiveWeeks.map(async (week) => ({
+              ...week,
+              rows: await loadWeekRows(week),
+            })),
+          );
+
+          users = buildUserDataset(weeksWithRows);
+          if (users.length === 0) {
+            throw new Error(MESSAGES.noUsers);
+          }
+
+          selectedUsers = new Set(buildDefaultSelection(users));
+          updateSelectionCount();
+          renderUserList();
+          renderSelectedUsers();
+          renderChart();
+          renderSummaryTable();
+
+          setStatus(
+            MESSAGES.loaded(archiveWeeks.length, users.length),
+            "success",
+          );
+        } catch (error) {
+          archiveWeeks = [];
+          users = [];
+          selectedUsers = new Set();
+          updateSelectionCount();
+          userList.innerHTML =
+            '<div class="user-list-empty">Archive data failed to load.</div>';
+          selectedUsersContainer.innerHTML = "";
+          chartWrap.innerHTML =
+            '<div class="chart-empty">Chart data unavailable.</div>';
+          summaryBody.innerHTML =
+            '<tr><td class="table-empty" colspan="7">Summary unavailable.</td></tr>';
+          setStatus(MESSAGES.loadFailed(error.message), "error");
+        }
+      }
+
+      metricSelect.addEventListener("change", () => {
+        renderChart();
+        renderSummaryTable();
+      });
+
+      rangeStartSelect.addEventListener("change", (event) => {
+        rangeStartIndex = Number(event.target.value);
+        if (rangeStartIndex > rangeEndIndex) {
+          rangeEndIndex = rangeStartIndex;
+        }
+        syncRangeSelection();
+        renderChart();
+        renderSummaryTable();
+      });
+
+      rangeEndSelect.addEventListener("change", (event) => {
+        rangeEndIndex = Number(event.target.value);
+        if (rangeEndIndex < rangeStartIndex) {
+          rangeStartIndex = rangeEndIndex;
+        }
+        syncRangeSelection();
+        renderChart();
+        renderSummaryTable();
+      });
+
+      userSearchInput.addEventListener("input", () => {
+        renderUserList();
+      });
+
+      clearSelectionButton.addEventListener("click", () => {
+        clearSelectedUsers();
+      });
+
+      updateSelectionCount();
+      loadArchiveData();
+    </script>
+  </body>
+</html>
