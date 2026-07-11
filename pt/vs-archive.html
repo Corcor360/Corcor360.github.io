@@ -25,6 +25,26 @@
         color: #1f3f36;
         font: inherit;
       }
+
+      .search-controls {
+        margin: 0 0 1rem;
+      }
+
+      .search-controls label {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-weight: 700;
+      }
+
+      .search-controls input {
+        width: min(380px, 100%);
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #3d5f56;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
+      }
     </style>
   </head>
   <body>
@@ -56,6 +76,17 @@
         <select id="week-select" disabled>
           <option value="">Carregando lista do arquivo...</option>
         </select>
+      </section>
+
+      <section class="search-controls" aria-label="Busca por nome de usuario">
+        <label for="username-search">Buscar usuario</label>
+        <input
+          id="username-search"
+          type="search"
+          placeholder="Digite um usuario..."
+          autocomplete="off"
+          spellcheck="false"
+        />
       </section>
 
       <div class="table-wrap">
@@ -93,10 +124,13 @@
         window.location.href = event.target.value;
       });
       const weekSelect = document.getElementById("week-select");
+      const usernameSearchInput = document.getElementById("username-search");
       const manifestUrl = "../data/vs-archive/manifest.json";
       const archiveBasePath = "../data/vs-archive/";
       const locale = "pt";
       const numberLocale = "pt-BR";
+      let currentRankedRows = [];
+      let currentWeekLabel = "";
       const expectedColumns = [
         "rank",
         "username",
@@ -122,6 +156,10 @@
         loadingCsv: (label) => `Carregando ${label}...`,
         loadedRows: (rowCount, label) =>
           `Carregadas ${rowCount} linhas para ${label}. A classificação é gerada automaticamente de 1 a 100.`,
+        filteredRows: (matchCount, totalCount, query, label) =>
+          `Mostrando ${matchCount} de ${totalCount} linhas para ${label} que correspondem a "${query}". Os valores de classificação não mudam.`,
+        noUsernameMatches: (query, label) =>
+          `Nenhum nome de usuário corresponde a "${query}" para ${label}.`,
         csvLoadError: (label, message) =>
           `Não foi possível carregar o CSV para ${label}. ${message}`,
         noEntriesStatus:
@@ -333,6 +371,46 @@
         });
       }
 
+      function applyUsernameFilter() {
+        if (!currentWeekLabel) {
+          return;
+        }
+
+        const rawQuery = usernameSearchInput.value.trim();
+        const query = rawQuery.toLowerCase();
+        let filteredRows = currentRankedRows;
+
+        if (query) {
+          filteredRows = currentRankedRows.filter((row) =>
+            String(row[1]).toLowerCase().includes(query),
+          );
+        }
+
+        renderRows(filteredRows);
+
+        if (!query) {
+          setStatus(
+            MESSAGES.loadedRows(currentRankedRows.length, currentWeekLabel),
+            "success",
+          );
+          return;
+        }
+
+        if (filteredRows.length === 0) {
+          setStatus(MESSAGES.noUsernameMatches(rawQuery, currentWeekLabel));
+          return;
+        }
+
+        setStatus(
+          MESSAGES.filteredRows(
+            filteredRows.length,
+            currentRankedRows.length,
+            rawQuery,
+            currentWeekLabel,
+          ),
+        );
+      }
+
       function getEntryLabel(entry) {
         if (entry.labels && typeof entry.labels === "object") {
           if (
@@ -506,9 +584,12 @@
               formatScore(row.totalScore),
             ]);
 
-          renderRows(rankedRows);
-          setStatus(MESSAGES.loadedRows(rankedRows.length, label), "success");
+          currentRankedRows = rankedRows;
+          currentWeekLabel = label;
+          applyUsernameFilter();
         } catch (error) {
+          currentRankedRows = [];
+          currentWeekLabel = "";
           tableBody.innerHTML = "";
           setStatus(MESSAGES.csvLoadError(label, error.message), "error");
         }
@@ -531,6 +612,8 @@
           const validEntries = manifest.filter(isValidManifestEntry);
 
           if (validEntries.length === 0) {
+            currentRankedRows = [];
+            currentWeekLabel = "";
             tableBody.innerHTML = "";
             weekSelect.innerHTML = `<option value="">${MESSAGES.noEntriesOption}</option>`;
             weekSelect.disabled = true;
@@ -552,12 +635,18 @@
           weekSelect.value = "0";
           await loadArchiveCsv(firstEntry);
         } catch (error) {
+          currentRankedRows = [];
+          currentWeekLabel = "";
           tableBody.innerHTML = "";
           weekSelect.innerHTML = `<option value="">${MESSAGES.manifestFailedOption}</option>`;
           weekSelect.disabled = true;
           setStatus(MESSAGES.manifestLoadError(error.message), "error");
         }
       }
+
+      usernameSearchInput.addEventListener("input", () => {
+        applyUsernameFilter();
+      });
 
       loadArchiveManifest();
     </script>
