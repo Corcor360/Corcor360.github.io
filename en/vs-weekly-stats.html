@@ -193,6 +193,18 @@
         background: #eef5f0;
         border: 1px solid #bfd2c4;
         font-size: 0.88rem;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      .selected-chip:hover {
+        background: #e5f0e8;
+      }
+
+      .selected-chip:focus-visible {
+        outline: 2px solid #2f5d50;
+        outline-offset: 2px;
       }
 
       .chip-swatch {
@@ -1046,7 +1058,7 @@
         selectedUsersContainer.innerHTML = selectedList
           .map(
             (username) =>
-              `<span class="selected-chip"><span class="chip-swatch" style="background:${getUserColor(username)}"></span>${escapeHtml(username)}</span>`,
+              `<button class="selected-chip" type="button" data-username="${escapeHtml(username)}" title="Remove ${escapeHtml(username)}"><span class="chip-swatch" style="background:${getUserColor(username)}"></span>${escapeHtml(username)}</button>`,
           )
           .join("");
       }
@@ -1468,6 +1480,25 @@
 
       clearSelectionButton.addEventListener("click", () => {
         clearSelectedUsers();
+      });
+
+      selectedUsersContainer.addEventListener("click", (event) => {
+        const chip = event.target.closest(".selected-chip[data-username]");
+        if (!chip) {
+          return;
+        }
+
+        const username = chip.getAttribute("data-username");
+        if (!username || !selectedUsers.has(username)) {
+          return;
+        }
+
+        selectedUsers.delete(username);
+        updateSelectionCount();
+        renderUserList();
+        renderSelectedUsers();
+        renderChart();
+        renderSummaryTable();
       });
 
       updateSelectionCount();
