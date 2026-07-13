@@ -1,6 +1,14 @@
 [
   {
     "labels": {
+      "en": "Week 28 (Jul 5-11, 2026)",
+      "es": "Semana 28 (5-11 jul 2026)",
+      "pt": "Semana 28 (5-11 jul 2026)"
+    },
+    "csv": "2026-W28.csv"
+  },
+  {
+    "labels": {
       "en": "Week 27 (Jun 28-Jul 4, 2026)",
       "es": "Semana 27 (28 jun-4 jul 2026)",
       "pt": "Semana 27 (28 jun-4 jul 2026)"
