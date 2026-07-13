@@ -333,6 +333,70 @@
         color: #55756a;
       }
 
+      .video-overlay[hidden] {
+        display: none;
+      }
+
+      .video-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .video-overlay-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 24, 20, 0.78);
+        backdrop-filter: blur(3px);
+      }
+
+      .video-overlay-panel {
+        position: relative;
+        width: min(94vw, 920px);
+        border-radius: 14px;
+        border: 1px solid #abc0b3;
+        background: #f6faf7;
+        box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
+        padding: 0.6rem;
+      }
+
+      .video-overlay-close {
+        position: absolute;
+        top: 0.55rem;
+        right: 0.55rem;
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 999px;
+        border: 1px solid #8ca595;
+        background: #ffffff;
+        color: #1a372e;
+        font-size: 1.2rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .video-overlay-close:hover {
+        background: #edf4ef;
+      }
+
+      .video-overlay-frame-wrap {
+        width: 100%;
+        aspect-ratio: 891 / 668;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .video-overlay-frame-wrap iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
       @media (max-width: 960px) {
         .controls-grid {
           grid-template-columns: 1fr;
@@ -485,10 +549,41 @@
       <p id="status-message" class="status" role="status" aria-live="polite">
         Loading archive manifest...
       </p>
+
+      <div id="video-overlay" class="video-overlay" hidden>
+        <div id="video-overlay-backdrop" class="video-overlay-backdrop"></div>
+        <div
+          id="video-overlay-panel"
+          class="video-overlay-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-label="GeneralPukka highlight video"
+          tabindex="-1"
+        >
+          <button
+            id="video-overlay-close"
+            class="video-overlay-close"
+            type="button"
+            aria-label="Close video"
+          >
+            x
+          </button>
+          <div
+            id="video-overlay-frame-wrap"
+            class="video-overlay-frame-wrap"
+          ></div>
+        </div>
+      </div>
     </main>
 
     <script>
       const MAX_SELECTED_USERS = 5;
+      // special user configuration
+      const ENABLE_GENERALPUKKA_VIDEO = true; // dev feature switch
+      const SPECIAL_USER_KEY = "generalpukka";
+      const SPECIAL_VIDEO_DURATION_MS = 10000;
+      const SPECIAL_VIDEO_EMBED_URL =
+        "https://www.youtube.com/embed/y8Kyi0WNg40?autoplay=1&rel=0";
       const archiveBasePath = "../data/vs-archive/";
       const manifestUrl = `${archiveBasePath}manifest.json`;
       const locale = "en";
@@ -556,6 +651,15 @@
       const summaryBody = document.getElementById("summary-body");
       const summaryCaption = document.getElementById("summary-caption");
       const clearSelectionButton = document.getElementById("clear-selection");
+      const videoOverlay = document.getElementById("video-overlay");
+      const videoOverlayPanel = document.getElementById("video-overlay-panel");
+      const videoOverlayBackdrop = document.getElementById(
+        "video-overlay-backdrop",
+      );
+      const videoOverlayClose = document.getElementById("video-overlay-close");
+      const videoOverlayFrameWrap = document.getElementById(
+        "video-overlay-frame-wrap",
+      );
 
       let archiveWeeks = [];
       let users = [];
@@ -565,6 +669,68 @@
       let rangeEndIndex = 0;
       let usernameAliasLookup = new Map();
       let usernameCanonicalDisplayLookup = new Map();
+      let generalPukkaWasSelected = false;
+      let specialVideoTimerId = null;
+
+      function clearSpecialVideoTimer() {
+        if (specialVideoTimerId !== null) {
+          window.clearTimeout(specialVideoTimerId);
+          specialVideoTimerId = null;
+        }
+      }
+
+      function hideSpecialVideoOverlay() {
+        clearSpecialVideoTimer();
+        videoOverlay.hidden = true;
+        videoOverlayFrameWrap.innerHTML = "";
+      }
+
+      function showSpecialVideoOverlay() {
+        clearSpecialVideoTimer();
+        videoOverlayFrameWrap.innerHTML = `
+          <iframe
+            width="891"
+            height="668"
+            src="${SPECIAL_VIDEO_EMBED_URL}"
+            title="Dramatic Look"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen
+          ></iframe>
+        `;
+        videoOverlay.hidden = false;
+        videoOverlayPanel.focus();
+        specialVideoTimerId = window.setTimeout(() => {
+          hideSpecialVideoOverlay();
+        }, SPECIAL_VIDEO_DURATION_MS);
+      }
+
+      function isSpecialUserSelected() {
+        return Array.from(selectedUsers).some(
+          (username) => resolveUsernameKey(username) === SPECIAL_USER_KEY,
+        );
+      }
+
+      function syncSpecialUserVideoOverlay() {
+        if (!ENABLE_GENERALPUKKA_VIDEO) {
+          hideSpecialVideoOverlay();
+          generalPukkaWasSelected = false;
+          return;
+        }
+
+        const isSelected = isSpecialUserSelected();
+
+        if (isSelected && !generalPukkaWasSelected) {
+          showSpecialVideoOverlay();
+        }
+
+        if (!isSelected && generalPukkaWasSelected) {
+          hideSpecialVideoOverlay();
+        }
+
+        generalPukkaWasSelected = isSelected;
+      }
 
       function getMetricBaseline(metricKey) {
         return metricKey === "totalScore" ? 43200000 : 7200000;
@@ -1087,6 +1253,7 @@
         renderSelectedUsers();
         renderChart();
         renderSummaryTable();
+        syncSpecialUserVideoOverlay();
       }
 
       function renderUserList() {
@@ -1130,6 +1297,7 @@
             renderSelectedUsers();
             renderChart();
             renderSummaryTable();
+            syncSpecialUserVideoOverlay();
           });
         });
       }
@@ -1428,6 +1596,7 @@
           renderSelectedUsers();
           renderChart();
           renderSummaryTable();
+          syncSpecialUserVideoOverlay();
 
           setStatus(
             MESSAGES.loaded(archiveWeeks.length, users.length),
@@ -1445,6 +1614,8 @@
             '<div class="chart-empty">Chart data unavailable.</div>';
           summaryBody.innerHTML =
             '<tr><td class="table-empty" colspan="7">Summary unavailable.</td></tr>';
+          hideSpecialVideoOverlay();
+          generalPukkaWasSelected = false;
           setStatus(MESSAGES.loadFailed(error.message), "error");
         }
       }
@@ -1499,6 +1670,21 @@
         renderSelectedUsers();
         renderChart();
         renderSummaryTable();
+        syncSpecialUserVideoOverlay();
+      });
+
+      videoOverlayClose.addEventListener("click", () => {
+        hideSpecialVideoOverlay();
+      });
+
+      videoOverlayBackdrop.addEventListener("click", () => {
+        hideSpecialVideoOverlay();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !videoOverlay.hidden) {
+          hideSpecialVideoOverlay();
+        }
       });
 
       updateSelectionCount();
