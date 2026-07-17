@@ -199,7 +199,8 @@
       function resolveUsernameDisplay(value) {
         const canonicalKey = resolveUsernameKey(value);
         return (
-          usernameCanonicalDisplayLookup.get(canonicalKey) || String(value || "").trim()
+          usernameCanonicalDisplayLookup.get(canonicalKey) ||
+          String(value || "").trim()
         );
       }
 
@@ -469,7 +470,9 @@
             lastTimeDriving: daysSince(stat.lastDriverTimestamp, todayUtcDay),
             lastTimeVip: daysSince(stat.lastVipTimestamp, todayUtcDay),
           }))
-          .filter((stat) => !ignoredUsers.has(resolveUsernameKey(stat.username)))
+          .filter(
+            (stat) => !ignoredUsers.has(resolveUsernameKey(stat.username)),
+          )
           .sort((a, b) => {
             const aDays =
               typeof a.lastTimeDriving === "number"
