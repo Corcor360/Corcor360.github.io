@@ -114,10 +114,13 @@
       const csvUrl =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vQU6Du4tIuOoUGSLdggDJE1cA00Hs_Ujj1XcmSIklAEJyYLBFCYlreSW0ccCLSc6yN_r3WCB1FFSP9z/pub?output=csv";
       const ignoreListUrl = "../data/train-tracker-ignore.json";
+      const usernameAliasUrl = "../data/user-aliases.json";
       const expectedColumns = ["date", "conductor", "vip"];
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
       const SPECIAL_EVENT_CUTOFF = Date.UTC(2026, 5, 2); // June 2, 2026
       const LOCALE = "es-ES";
+      let usernameAliasLookup = new Map();
+      let usernameCanonicalDisplayLookup = new Map();
       const MESSAGES = {
         loading: "Cargando datos de Train tracker...",
         requestFailed: (status) => `La solicitud fallo con estado ${status}`,
@@ -143,10 +146,81 @@
           .replace(/[^a-z0-9]/g, "");
       }
 
-      function normalizeUsername(value) {
+      function normalizeUsernameKey(value) {
         return String(value || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
           .trim()
-          .toLowerCase();
+          .toLowerCase()
+          .replace(/\s+/g, "");
+      }
+
+      function applyUsernameAliasGroups(aliasGroups) {
+        usernameAliasLookup = new Map();
+        usernameCanonicalDisplayLookup = new Map();
+
+        if (!Array.isArray(aliasGroups)) {
+          return;
+        }
+
+        aliasGroups.forEach((group) => {
+          if (!group || typeof group !== "object") {
+            return;
+          }
+
+          const canonical =
+            typeof group.canonical === "string" ? group.canonical.trim() : "";
+          if (!canonical) {
+            return;
+          }
+
+          const canonicalKey = normalizeUsernameKey(canonical);
+          if (!canonicalKey) {
+            return;
+          }
+
+          usernameCanonicalDisplayLookup.set(canonicalKey, canonical);
+          usernameAliasLookup.set(canonicalKey, canonicalKey);
+
+          const aliases = Array.isArray(group.aliases) ? group.aliases : [];
+          aliases.forEach((alias) => {
+            if (typeof alias !== "string") {
+              return;
+            }
+
+            const aliasKey = normalizeUsernameKey(alias);
+            if (aliasKey) {
+              usernameAliasLookup.set(aliasKey, canonicalKey);
+            }
+          });
+        });
+      }
+
+      function resolveUsernameKey(value) {
+        const normalizedKey = normalizeUsernameKey(value);
+        return usernameAliasLookup.get(normalizedKey) || normalizedKey;
+      }
+
+      function resolveUsernameDisplay(value) {
+        const canonicalKey = resolveUsernameKey(value);
+        return (
+          usernameCanonicalDisplayLookup.get(canonicalKey) || String(value || "").trim()
+        );
+      }
+
+      async function loadUsernameAliasGroups() {
+        try {
+          const response = await fetch(usernameAliasUrl, { cache: "no-store" });
+          if (!response.ok) {
+            applyUsernameAliasGroups([]);
+            return;
+          }
+
+          const aliasGroups = await response.json();
+          applyUsernameAliasGroups(aliasGroups);
+        } catch (error) {
+          applyUsernameAliasGroups([]);
+        }
       }
 
       function parseCsvLine(line) {
@@ -341,9 +415,14 @@
             return null;
           }
 
-          if (!statsMap.has(normalized)) {
-            statsMap.set(normalized, {
-              username: normalized,
+          const canonicalKey = resolveUsernameKey(normalized);
+          if (!canonicalKey) {
+            return null;
+          }
+
+          if (!statsMap.has(canonicalKey)) {
+            statsMap.set(canonicalKey, {
+              username: resolveUsernameDisplay(normalized),
               driverCount: 0,
               vipCount: 0,
               lastDriverTimestamp: null,
@@ -351,7 +430,7 @@
             });
           }
 
-          return statsMap.get(normalized);
+          return statsMap.get(canonicalKey);
         }
 
         rows.forEach((entry) => {
@@ -395,7 +474,7 @@
             lastTimeDriving: daysSince(stat.lastDriverTimestamp, todayUtcDay),
             lastTimeVip: daysSince(stat.lastVipTimestamp, todayUtcDay),
           }))
-          .filter((stat) => !ignoredUsers.has(normalizeUsername(stat.username)))
+          .filter((stat) => !ignoredUsers.has(resolveUsernameKey(stat.username)))
           .sort((a, b) => {
             const aDays =
               typeof a.lastTimeDriving === "number"
@@ -453,7 +532,7 @@
 
           return new Set(
             data.ignored
-              .map((value) => normalizeUsername(value))
+              .map((value) => resolveUsernameKey(value))
               .filter((value) => value !== ""),
           );
         } catch (error) {
@@ -465,6 +544,8 @@
         setStatus(MESSAGES.loading);
 
         try {
+          await loadUsernameAliasGroups();
+
           const response = await fetch(csvUrl, { cache: "no-store" });
           if (!response.ok) {
             throw new Error(MESSAGES.requestFailed(response.status));
