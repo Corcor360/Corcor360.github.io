@@ -263,6 +263,7 @@
       const trainCsvUrl =
         "https://docs.google.com/spreadsheets/d/e/2PACX-1vQU6Du4tIuOoUGSLdggDJE1cA00Hs_Ujj1XcmSIklAEJyYLBFCYlreSW0ccCLSc6yN_r3WCB1FFSP9z/pub?output=csv";
       const ignoreUrl = "../data/train-selector-ignore.json";
+      const usernameAliasUrl = "../data/user-aliases.json";
       const expectedColumns = [
         "rank",
         "username",
@@ -289,7 +290,7 @@
           `Train Tracker is missing required columns: ${columns}.`,
         noValidRows: "No valid rows found in the CSV.",
         ignoreInvalid:
-          "Ignore file is invalid. Expected JSON object with an exclude array.",
+          "Ignore file is invalid. Expected JSON object with an exclude or ignored array.",
         notEnoughTopPlayers:
           "Need at least 15 eligible players after exclusions and 14-day conductor cooldown.",
         ready: (rowCount) =>
@@ -303,6 +304,7 @@
       const state = {
         topPlayers: [],
         excludedUsers: new Set(),
+        usernameAliasLookup: new Map(),
         assignment: {
           driver: [],
           vip: [],
@@ -535,10 +537,82 @@
         return cells[index] || "";
       }
 
-      function normalizeUsername(value) {
+      function normalizeUsernameKey(value) {
         return String(value || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
           .trim()
-          .toLowerCase();
+          .replace(/\s+/g, "");
+      }
+
+      function applyUsernameAliasGroups(aliasGroups) {
+        state.usernameAliasLookup = new Map();
+
+        if (!Array.isArray(aliasGroups)) {
+          return;
+        }
+
+        aliasGroups.forEach((group) => {
+          if (!group || typeof group !== "object") {
+            return;
+          }
+
+          const canonical =
+            typeof group.canonical === "string" ? group.canonical.trim() : "";
+          if (!canonical) {
+            return;
+          }
+
+          const canonicalKey = normalizeUsernameKey(canonical);
+          if (!canonicalKey) {
+            return;
+          }
+
+          state.usernameAliasLookup.set(canonicalKey, canonicalKey);
+
+          const aliases = Array.isArray(group.aliases) ? group.aliases : [];
+          aliases.forEach((alias) => {
+            if (typeof alias !== "string") {
+              return;
+            }
+
+            const aliasKey = normalizeUsernameKey(alias);
+            if (aliasKey) {
+              state.usernameAliasLookup.set(aliasKey, canonicalKey);
+            }
+          });
+        });
+      }
+
+      function resolveUsernameKey(value) {
+        const normalizedKey = normalizeUsernameKey(value);
+        return state.usernameAliasLookup.get(normalizedKey) || normalizedKey;
+      }
+
+      async function loadUsernameAliasGroups() {
+        try {
+          const response = await fetch(usernameAliasUrl, { cache: "no-store" });
+          if (!response.ok) {
+            applyUsernameAliasGroups([]);
+            return;
+          }
+
+          const aliasGroups = await response.json();
+          applyUsernameAliasGroups(aliasGroups);
+        } catch (error) {
+          applyUsernameAliasGroups([]);
+        }
+      }
+
+      function getIgnoreNames(data) {
+        if (data && Array.isArray(data.exclude)) {
+          return data.exclude;
+        }
+        if (data && Array.isArray(data.ignored)) {
+          return data.ignored;
+        }
+        throw new Error(MESSAGES.ignoreInvalid);
       }
 
       async function loadIgnoreList() {
@@ -548,13 +622,11 @@
         }
 
         const data = await response.json();
-        if (!data || !Array.isArray(data.exclude)) {
-          throw new Error(MESSAGES.ignoreInvalid);
-        }
+        const ignoreNames = getIgnoreNames(data);
 
         state.excludedUsers = new Set(
-          data.exclude
-            .map((name) => normalizeUsername(name))
+          ignoreNames
+            .map((name) => resolveUsernameKey(name))
             .filter((name) => name !== ""),
         );
       }
@@ -686,6 +758,7 @@
         setStatus(MESSAGES.loading);
 
         try {
+          await loadUsernameAliasGroups();
           await loadIgnoreList();
 
           const [vsResponse, trainResponse] = await Promise.all([
@@ -752,7 +825,7 @@
 
             const daysSince = daysSinceTimestamp(timestamp, todayUtcDay);
             if (daysSince !== null && daysSince < CONDUCTOR_COOLDOWN_DAYS) {
-              recentConductors.add(normalizeUsername(conductor));
+              recentConductors.add(resolveUsernameKey(conductor));
             }
           }
 
@@ -777,7 +850,7 @@
               continue;
             }
 
-            const normalizedUser = normalizeUsername(username);
+            const normalizedUser = resolveUsernameKey(username);
             if (
               state.excludedUsers.has(normalizedUser) ||
               recentConductors.has(normalizedUser)
