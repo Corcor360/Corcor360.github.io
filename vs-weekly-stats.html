@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting to VS Weekly Stats</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", Times, serif;
+        background: linear-gradient(
+          135deg,
+          #f7f9f2 0%,
+          #e9efe2 50%,
+          #d6e3d0 100%
+        );
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+
+      main {
+        background: #ffffffd9;
+        border: 1px solid #a4b494;
+        border-radius: 14px;
+        padding: 2rem;
+        max-width: 680px;
+        box-shadow: 0 16px 30px rgba(59, 77, 52, 0.12);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Redirecting...</h1>
+      <p>Detecting your language preference. Redirecting...</p>
+    </main>
+
+    <script>
+      function getLanguagePath() {
+        const supported = { en: "en", es: "es", pt: "pt" };
+        const browserLangs = navigator.languages || [navigator.language];
+
+        for (const browserLang of browserLangs) {
+          const langCode = browserLang.split("-")[0].toLowerCase();
+          if (supported[langCode]) {
+            return supported[langCode];
+          }
+        }
+
+        return "en";
+      }
+
+      const lang = getLanguagePath();
+      const targetPage = "vs-weekly-stats.html";
+      window.location.href = `${lang}/${targetPage}`;
+    </script>
+  </body>
+</html>

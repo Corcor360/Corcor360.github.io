@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VS Weekly Stats</title>
+    <title>Estadisticas semanales de VS</title>
     <link rel="stylesheet" href="../vs-tracker.css" />
     <style>
       .page {
@@ -436,58 +436,65 @@
   <body>
     <main class="page">
       <div class="title-row">
-        <h1>VS Weekly Stats</h1>
-        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+        <h1>Estadisticas semanales de VS</h1>
+        <a class="back-link" href="PPLE-Home.html">Volver al inicio</a>
       </div>
 
       <p class="subtitle">
-        Compare weekly archive performance across selected users. Data is loaded
-        from <strong>data/vs-archive/manifest.json</strong> and every linked
-        weekly CSV in <strong>data/vs-archive/</strong>.
+        Compara el rendimiento semanal del archivo entre los usuarios
+        seleccionados. Los datos se cargan desde
+        <strong>data/vs-archive/manifest.json</strong> y cada CSV semanal
+        enlazado en <strong>data/vs-archive/</strong>.
       </p>
       <div class="lang-switch">
-        <label for="language-select">Language</label>
-        <select id="language-select" aria-label="Select language">
-          <option value="../en/vs-weekly-stats.html" selected>English</option>
-          <option value="../es/vs-weekly-stats.html">Español</option>
+        <label for="language-select">Idioma</label>
+        <select id="language-select" aria-label="Seleccionar idioma">
+          <option value="../en/vs-weekly-stats.html">English</option>
+          <option value="../es/vs-weekly-stats.html" selected>Español</option>
           <option value="../pt/vs-weekly-stats.html">Português</option>
         </select>
       </div>
 
-      <section class="controls-grid" aria-label="Weekly stats controls">
+      <section
+        class="controls-grid"
+        aria-label="Controles de estadisticas semanales"
+      >
         <aside class="control-card">
-          <h2>Compare Users</h2>
-          <p>Select up to 5 users to plot on the weekly trend chart.</p>
+          <h2>Comparar usuarios</h2>
+          <p>
+            Selecciona hasta 5 usuarios para mostrarlos en el grafico de
+            tendencia semanal.
+          </p>
 
           <div class="metric-row">
-            <label for="metric-select">Metric</label>
+            <label for="metric-select">Metrica</label>
             <select id="metric-select">
-              <option value="totalScore">Total Score</option>
+              <option value="totalScore">Puntuacion total</option>
               <option value="radar">Radar</option>
-              <option value="construction">Construction</option>
-              <option value="tech">Tech</option>
-              <option value="hero">Hero</option>
-              <option value="mobilization">Mobilization</option>
+              <option value="construction">Construccion</option>
+              <option value="tech">Tecnologia</option>
+              <option value="hero">Heroe</option>
+              <option value="mobilization">Movilizacion</option>
               <option value="buster">Buster</option>
             </select>
           </div>
 
           <div class="range-row">
-            <label for="range-start-select">Start week</label>
+            <label for="range-start-select">Semana inicial</label>
             <select id="range-start-select"></select>
           </div>
 
           <div class="range-row">
-            <label for="range-end-select">End week</label>
+            <label for="range-end-select">Semana final</label>
             <select id="range-end-select"></select>
           </div>
 
           <div class="user-search">
-            <label for="user-search">Search users</label>
+            <label for="user-search">Buscar usuarios</label>
             <input
               id="user-search"
               type="search"
-              placeholder="Type a username..."
+              placeholder="Escribe un usuario..."
               autocomplete="off"
               spellcheck="false"
             />
@@ -495,24 +502,24 @@
 
           <div class="selection-meta">
             <div class="selection-actions">
-              <span id="selection-count">0 selected</span>
+              <span id="selection-count">0 seleccionados</span>
               <button
                 id="clear-selection"
                 class="clear-button"
                 type="button"
                 disabled
               >
-                Clear all
+                Limpiar todo
               </button>
             </div>
-            <span id="archive-count">Loading archive weeks...</span>
+            <span id="archive-count">Cargando semanas del archivo...</span>
           </div>
 
           <div
             id="user-list"
             class="user-list"
             role="group"
-            aria-label="Selectable users"
+            aria-label="Usuarios seleccionables"
           ></div>
 
           <div
@@ -522,37 +529,46 @@
           ></div>
         </aside>
 
-        <section class="chart-card" aria-label="Weekly stats chart">
-          <h2 id="chart-title">Total Score Trend</h2>
+        <section
+          class="chart-card"
+          aria-label="Grafico de estadisticas semanales"
+        >
+          <h2 id="chart-title">Tendencia de puntuacion total</h2>
           <div class="chart-meta">
-            <span id="chart-subtitle">Preparing weekly archive data...</span>
+            <span id="chart-subtitle"
+              >Preparando datos semanales del archivo...</span
+            >
             <span id="chart-range"></span>
           </div>
           <div id="chart-wrap" class="chart-wrap">
-            <div class="chart-empty">Loading chart data...</div>
+            <div class="chart-empty">Cargando datos del grafico...</div>
           </div>
         </section>
       </section>
 
-      <section class="summary-card" aria-label="Selected user summary">
-        <h2>Selected User Summary</h2>
+      <section
+        class="summary-card"
+        aria-label="Resumen de usuarios seleccionados"
+      >
+        <h2>Resumen de usuarios seleccionados</h2>
         <p id="summary-caption">
-          Review the latest, peak, and average values for the selected metric.
+          Revisa los valores mas recientes, maximos y promedio de la metrica
+          seleccionada.
         </p>
         <div class="summary-table-wrap">
           <table
             class="summary-table"
-            aria-label="Selected user metric summary"
+            aria-label="Resumen de la metrica de usuarios seleccionados"
           >
             <thead>
               <tr>
-                <th scope="col">User</th>
-                <th scope="col">Weeks With Data</th>
-                <th scope="col">Latest Week</th>
-                <th scope="col">Latest Value</th>
-                <th scope="col">Peak Week</th>
-                <th scope="col">Peak Value</th>
-                <th scope="col">Average Value</th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Semanas con datos</th>
+                <th scope="col">Semana mas reciente</th>
+                <th scope="col">Valor mas reciente</th>
+                <th scope="col">Semana maxima</th>
+                <th scope="col">Valor maximo</th>
+                <th scope="col">Valor promedio</th>
               </tr>
             </thead>
             <tbody id="summary-body"></tbody>
@@ -561,7 +577,7 @@
       </section>
 
       <p id="status-message" class="status" role="status" aria-live="polite">
-        Loading archive manifest...
+        Cargando manifiesto del archivo...
       </p>
 
       <div id="video-overlay" class="video-overlay" hidden>
@@ -571,14 +587,14 @@
           class="video-overlay-panel"
           role="dialog"
           aria-modal="true"
-          aria-label="GeneralPukka highlight video"
+          aria-label="Video destacado de GeneralPukka"
           tabindex="-1"
         >
           <button
             id="video-overlay-close"
             class="video-overlay-close"
             type="button"
-            aria-label="Close video"
+            aria-label="Cerrar video"
           >
             x
           </button>
@@ -597,18 +613,18 @@
       const SPECIAL_VIDEO_DURATION_MS = 10000;
       const SPECIAL_VIDEO_EMBED_URL =
         "https://www.youtube.com/embed/y8Kyi0WNg40?autoplay=1&rel=0";
-      const SPECIAL_VIDEO_TITLE = "Dramatic Look";
+      const SPECIAL_VIDEO_TITLE = "Mirada dramatica";
       const archiveBasePath = "../data/vs-archive/";
       const manifestUrl = `${archiveBasePath}manifest.json`;
-      const locale = "en";
-      const numberLocale = "en-US";
+      const locale = "es";
+      const numberLocale = "es-ES";
       const metricLabels = {
-        totalScore: "Total Score",
+        totalScore: "Puntuacion total",
         radar: "Radar",
-        construction: "Construction",
-        tech: "Tech",
-        hero: "Hero",
-        mobilization: "Mobilization",
+        construction: "Construccion",
+        tech: "Tecnologia",
+        hero: "Heroe",
+        mobilization: "Movilizacion",
         buster: "Buster",
       };
       const metricKeys = Object.keys(metricLabels);
@@ -632,35 +648,39 @@
         "#c0851a",
       ];
       const MESSAGES = {
-        loadingManifest: "Loading archive manifest...",
-        loadingData: "Loading weekly CSV archive...",
-        loadFailed: (message) => `Unable to load weekly stats. ${message}`,
-        manifestArray: "Manifest must be an array of entries.",
-        noEntries: "No archive entries found in manifest.json.",
-        csvMissingRows: "CSV is empty or missing data rows.",
-        missingUsername: "CSV must include a Username column.",
-        noUsers: "No users with weekly data were found.",
-        selectionLimit: (limit) => `Select up to ${limit} users at a time.`,
+        loadingManifest: "Cargando manifiesto del archivo...",
+        loadingData: "Cargando archivo CSV semanal...",
+        loadFailed: (message) =>
+          `No se pudieron cargar las estadisticas semanales. ${message}`,
+        manifestArray: "El manifiesto debe ser un arreglo de entradas.",
+        noEntries: "No se encontraron entradas del archivo en manifest.json.",
+        csvMissingRows: "El CSV esta vacio o no tiene filas de datos.",
+        missingUsername: "El CSV debe incluir una columna Username.",
+        noUsers: "No se encontraron usuarios con datos semanales.",
+        selectionLimit: (limit) =>
+          `Selecciona hasta ${limit} usuarios a la vez.`,
         loaded: (weeks, users) =>
-          `Loaded ${weeks} weeks for ${users} users. Select users to update the chart.`,
+          `Se cargaron ${weeks} semanas para ${users} usuarios. Selecciona usuarios para actualizar el grafico.`,
         chartReady: (metric, count) =>
-          `${metric} trend for ${count} selected user${count === 1 ? "" : "s"}.`,
-        chartTitle: (metric) => `${metric} Trend`,
-        chartAriaLabel: (metric) => `Weekly ${metric} trend chart`,
+          `Tendencia de ${metric} para ${count} usuario${count === 1 ? "" : "s"} seleccionado${count === 1 ? "" : "s"}.`,
+        chartTitle: (metric) => `Tendencia de ${metric}`,
+        chartAriaLabel: (metric) => `Grafico de tendencia semanal de ${metric}`,
         summaryCaption: (metric) =>
-          `Review the latest, peak, and average ${metric.toLowerCase()} values for the selected users.`,
-        emptySelection: "Select at least one user to plot weekly stats.",
-        emptySearch: "No users match the current search.",
-        selectionCount: (count) => `${count} selected`,
-        weekCount: (count) => `${count} week${count === 1 ? "" : "s"}`,
-        removeUser: (username) => `Remove ${username}`,
-        weekAxis: (weekNumber) => `Week ${weekNumber}`,
-        rangeText: (startLabel, endLabel) => `${startLabel} to ${endLabel}`,
-        archivedWeeks: (count) => `${count} archived weeks`,
-        baseline: (value) => `Baseline ${value}`,
-        archiveLoadFailed: "Archive data failed to load.",
-        chartUnavailable: "Chart data unavailable.",
-        summaryUnavailable: "Summary unavailable.",
+          `Revisa los valores mas recientes, maximos y promedio de ${metric.toLowerCase()} para los usuarios seleccionados.`,
+        emptySelection:
+          "Selecciona al menos un usuario para graficar las estadisticas semanales.",
+        emptySearch: "Ningun usuario coincide con la busqueda actual.",
+        selectionCount: (count) =>
+          `${count} seleccionado${count === 1 ? "" : "s"}`,
+        weekCount: (count) => `${count} semana${count === 1 ? "" : "s"}`,
+        removeUser: (username) => `Quitar ${username}`,
+        weekAxis: (weekNumber) => `Semana ${weekNumber}`,
+        rangeText: (startLabel, endLabel) => `${startLabel} a ${endLabel}`,
+        archivedWeeks: (count) => `${count} semanas archivadas`,
+        baseline: (value) => `Base ${value}`,
+        archiveLoadFailed: "No se pudieron cargar los datos del archivo.",
+        chartUnavailable: "Los datos del grafico no estan disponibles.",
+        summaryUnavailable: "El resumen no esta disponible.",
       };
 
       const statusMessage = document.getElementById("status-message");
