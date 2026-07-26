@@ -1262,11 +1262,29 @@
           );
         const missingLatestUsers = userDataset
           .filter(
-            (user) =>
-              user.weeks[latestWeekIndex] === null &&
-              user.weeks
-                .slice(0, latestWeekIndex)
-                .some((week) => week !== null),
+            (user) => {
+              if (user.weeks[latestWeekIndex] !== null) {
+                return false;
+              }
+
+              if (
+                !user.weeks
+                  .slice(0, latestWeekIndex)
+                  .some((week) => week !== null)
+              ) {
+                return false;
+              }
+
+              const previousTwoWeeks = user.weeks.slice(
+                Math.max(0, latestWeekIndex - 2),
+                latestWeekIndex,
+              );
+              const missingPreviousTwoWeeks =
+                previousTwoWeeks.length === 2 &&
+                previousTwoWeeks.every((week) => week === null);
+
+              return !missingPreviousTwoWeeks;
+            },
           )
           .map((user) => user.username)
           .sort((left, right) =>
