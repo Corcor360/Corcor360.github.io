@@ -33,7 +33,7 @@
   },
   {
     "canonical": "Burtis",
-    "aliases": ["Burtis", "Bütriş"]
+    "aliases": ["Burtis", "Bütriş", "Büţriş"]
   },
   {
     "canonical": "Dona Benta",
@@ -110,5 +110,13 @@
   {
     "canonical": "Sekhmetmerti",
     "aliases": ["Sekhmetmerti", "MFKN sekhi"]
+  },
+  {
+    "canonical": "1Thành",
+    "aliases": ["1Thành", "1Thanh"]
+  },
+  {
+    "canonical": "EXTERMÎNADOR",
+    "aliases": ["EXTERMÎNADOR", "EXTERMÎNAD"]
   }
 ]
