@@ -1241,6 +1241,48 @@
           });
       }
 
+      function logLatestWeekUserChanges(userDataset, weeksWithRows) {
+        if (weeksWithRows.length === 0) {
+          return;
+        }
+
+        const latestWeekIndex = weeksWithRows.length - 1;
+        const latestWeekLabel = weeksWithRows[latestWeekIndex].label;
+        const newUsers = userDataset
+          .filter(
+            (user) =>
+              user.weeks[latestWeekIndex] !== null &&
+              user.weeks
+                .slice(0, latestWeekIndex)
+                .every((week) => week === null),
+          )
+          .map((user) => user.username)
+          .sort((left, right) =>
+            left.localeCompare(right, undefined, { sensitivity: "base" }),
+          );
+        const missingLatestUsers = userDataset
+          .filter(
+            (user) =>
+              user.weeks[latestWeekIndex] === null &&
+              user.weeks
+                .slice(0, latestWeekIndex)
+                .some((week) => week !== null),
+          )
+          .map((user) => user.username)
+          .sort((left, right) =>
+            left.localeCompare(right, undefined, { sensitivity: "base" }),
+          );
+
+        console.log(
+          `[VS Weekly Stats] ${latestWeekLabel} new users:`,
+          newUsers,
+        );
+        console.log(
+          `[VS Weekly Stats] ${latestWeekLabel} users missing from the latest week:`,
+          missingLatestUsers,
+        );
+      }
+
       function buildDefaultSelection(userDataset) {
         return userDataset
           .slice(0, Math.min(3, MAX_SELECTED_USERS))
@@ -1633,6 +1675,7 @@
           );
 
           users = buildUserDataset(weeksWithRows);
+          logLatestWeekUserChanges(users, weeksWithRows);
           if (users.length === 0) {
             throw new Error(MESSAGES.noUsers);
           }
