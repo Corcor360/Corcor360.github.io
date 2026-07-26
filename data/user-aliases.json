@@ -93,7 +93,7 @@
   },
   {
     "canonical": "Le0thELAzyLi0NeSS",
-    "aliases": ["Le0thELAzyLi0NeSS", "ShadowLioness"]
+    "aliases": ["Le0thELAzyLi0NeSS", "ShadowLioness", "Le0thELAzyLi0"]
   },
   {
     "canonical": "luchador1",
@@ -118,5 +118,29 @@
   {
     "canonical": "EXTERMÎNADOR",
     "aliases": ["EXTERMÎNADOR", "EXTERMÎNAD"]
+  },
+  {
+    "canonical": "Small D Energy 25",
+    "aliases": ["Small D Energy 25", "Small D Ener"]
+  },
+  {
+    "canonical": "Twistedmizft",
+    "aliases": ["Twistedmizft", "Twistedmizfit"]
+  },
+  {
+    "canonical": "TattedMechanism",
+    "aliases": ["TattedMechanism", "TattedMech"]
+  },
+  {
+    "canonical":"N03J13",
+    "aliases":["N03J13", "NO3J13"]
+  },
+  {
+    "canonical":"Guilherme DellaG",
+    "aliases":["Guilherme DellaG", "Guilherme Della"]
+  },
+  {
+    "canonical":"JayGeee",
+    "aliases":["JayGeee", "JayGee"]
   }
 ]

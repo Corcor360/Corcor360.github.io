@@ -1288,14 +1288,48 @@
           .sort((left, right) =>
             left.localeCompare(right, undefined, { sensitivity: "base" }),
           );
+        const userLookup = new Map(
+          userDataset.map((user) => [user.username, user]),
+        );
+        const canonicalKeysWithAliases = new Set(
+          Array.from(usernameAliasLookup.entries())
+            .filter(([aliasKey, canonicalKey]) => aliasKey !== canonicalKey)
+            .map(([, canonicalKey]) => canonicalKey),
+        );
+        const mapUsersToAliasInfo = (usernames) =>
+          usernames.map((username) => {
+            const userEntry = userLookup.get(username);
+            const canonicalKey = userEntry
+              ? userEntry.usernameKey
+              : resolveUsernameKey(username);
+            const hasActiveAlias = canonicalKeysWithAliases.has(canonicalKey);
+            const canonicalUsername =
+              usernameCanonicalDisplayLookup.get(canonicalKey) || username;
+
+            return {
+              username,
+              hasActiveAlias,
+              canonicalUsername: hasActiveAlias ? canonicalUsername : null,
+            };
+          });
+        const newUserAliasMap = mapUsersToAliasInfo(newUsers);
+        const missingUserAliasMap = mapUsersToAliasInfo(missingLatestUsers);
 
         console.log(
           `[VS Weekly Stats] ${latestWeekLabel} new users:`,
           newUsers,
         );
         console.log(
+          `[VS Weekly Stats] ${latestWeekLabel} new users alias map:`,
+          newUserAliasMap,
+        );
+        console.log(
           `[VS Weekly Stats] ${latestWeekLabel} users missing from the latest week:`,
           missingLatestUsers,
+        );
+        console.log(
+          `[VS Weekly Stats] ${latestWeekLabel} missing users alias map:`,
+          missingUserAliasMap,
         );
       }
 
