@@ -562,6 +562,7 @@
           >
             <thead>
               <tr>
+                <th scope="col">Rango</th>
                 <th scope="col">Usuario</th>
                 <th scope="col">Semanas con datos</th>
                 <th scope="col">Semana mas reciente</th>
@@ -1647,13 +1648,12 @@
         summaryCaption.textContent = MESSAGES.summaryCaption(metricLabel);
 
         if (latestWeekUsers.length === 0) {
-          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="7">${MESSAGES.noLatestWeekUsers}</td></tr>`;
+          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="8">${MESSAGES.noLatestWeekUsers}</td></tr>`;
           return;
         }
 
         const summaryRows = latestWeekUsers
           .map((user) => {
-            const color = getUserColor(user.username);
             const startIndex = Math.min(rangeStartIndex, rangeEndIndex);
             const populatedWeeks = activeWeeks
               .map((week, index) => ({
@@ -1676,23 +1676,30 @@
               ? populatedWeeks.reduce((sum, point) => sum + point.value, 0) /
                 populatedWeeks.length
               : null;
+            const latestPointLabel = latestPoint
+              ? escapeHtml(latestPoint.label)
+              : "-";
+            const latestPointValue = latestPoint
+              ? escapeHtml(formatNumber(latestPoint.value))
+              : "-";
+            const peakPointLabel = peakPoint ? escapeHtml(peakPoint.label) : "-";
+            const peakPointValue = peakPoint
+              ? escapeHtml(formatNumber(peakPoint.value))
+              : "-";
+            const averageValueLabel =
+              averageValue !== null
+                ? escapeHtml(formatNumber(Math.round(averageValue)))
+                : "-";
 
             return {
               averageValue,
               username: user.username,
-              markup: `
-              <tr>
-                <td>
-                  <span class="summary-user"><span class="chip-swatch" style="background:${color}"></span>${escapeHtml(user.username)}</span>
-                </td>
-                <td>${populatedWeeks.length}</td>
-                <td>${latestPoint ? escapeHtml(latestPoint.label) : "-"}</td>
-                <td>${latestPoint ? escapeHtml(formatNumber(latestPoint.value)) : "-"}</td>
-                <td>${peakPoint ? escapeHtml(peakPoint.label) : "-"}</td>
-                <td>${peakPoint ? escapeHtml(formatNumber(peakPoint.value)) : "-"}</td>
-                <td>${averageValue !== null ? escapeHtml(formatNumber(Math.round(averageValue))) : "-"}</td>
-              </tr>
-            `,
+              populatedWeeksCount: populatedWeeks.length,
+              latestPointLabel,
+              latestPointValue,
+              peakPointLabel,
+              peakPointValue,
+              averageValueLabel,
             };
           })
           .sort((left, right) => {
@@ -1706,7 +1713,24 @@
             });
           });
 
-        summaryBody.innerHTML = summaryRows.map((row) => row.markup).join("");
+        summaryBody.innerHTML = summaryRows
+          .map(
+            (row, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>
+                  <span class="summary-user"><span class="chip-swatch" style="background:${getUserColor(row.username)}"></span>${escapeHtml(row.username)}</span>
+                </td>
+                <td>${row.populatedWeeksCount}</td>
+                <td>${row.latestPointLabel}</td>
+                <td>${row.latestPointValue}</td>
+                <td>${row.peakPointLabel}</td>
+                <td>${row.peakPointValue}</td>
+                <td>${row.averageValueLabel}</td>
+              </tr>
+            `,
+          )
+          .join("");
       }
 
       async function loadArchiveData() {
@@ -1771,7 +1795,7 @@
           userList.innerHTML = `<div class="user-list-empty">${MESSAGES.archiveLoadFailed}</div>`;
           selectedUsersContainer.innerHTML = "";
           chartWrap.innerHTML = `<div class="chart-empty">${MESSAGES.chartUnavailable}</div>`;
-          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="7">${MESSAGES.summaryUnavailable}</td></tr>`;
+          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="8">${MESSAGES.summaryUnavailable}</td></tr>`;
           hideSpecialVideoOverlay();
           generalPukkaWasSelected = false;
           setStatus(MESSAGES.loadFailed(error.message), "error");
