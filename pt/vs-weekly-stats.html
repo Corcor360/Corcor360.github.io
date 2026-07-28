@@ -1681,7 +1681,9 @@
             const latestPointValue = latestPoint
               ? escapeHtml(formatNumber(latestPoint.value))
               : "-";
-            const peakPointLabel = peakPoint ? escapeHtml(peakPoint.label) : "-";
+            const peakPointLabel = peakPoint
+              ? escapeHtml(peakPoint.label)
+              : "-";
             const peakPointValue = peakPoint
               ? escapeHtml(formatNumber(peakPoint.value))
               : "-";
