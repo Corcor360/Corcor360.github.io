@@ -548,17 +548,17 @@
 
       <section
         class="summary-card"
-        aria-label="Resumo dos usuarios selecionados"
+        aria-label="Resumo de usuarios ativos da semana mais recente"
       >
-        <h2>Resumo dos usuarios selecionados</h2>
+        <h2>Usuarios ativos da semana mais recente</h2>
         <p id="summary-caption">
-          Revise os valores mais recentes, maximos e medios da metrica
-          selecionada.
+          Revise os valores mais recentes, maximos e medios da metrica para
+          usuarios ativos na semana mais recente.
         </p>
         <div class="summary-table-wrap">
           <table
             class="summary-table"
-            aria-label="Resumo da metrica de usuarios selecionados"
+            aria-label="Resumo da metrica de usuarios ativos da semana mais recente"
           >
             <thead>
               <tr>
@@ -666,9 +666,10 @@
         chartTitle: (metric) => `Tendencia de ${metric}`,
         chartAriaLabel: (metric) => `Grafico de tendencia semanal de ${metric}`,
         summaryCaption: (metric) =>
-          `Revise os valores mais recentes, maximos e medios de ${metric.toLowerCase()} para os usuarios selecionados.`,
+          `Revise os valores mais recentes, maximos e medios de ${metric.toLowerCase()} para usuarios ativos na semana mais recente.`,
         emptySelection:
           "Selecione pelo menos um usuario para plotar as estatisticas semanais.",
+        noLatestWeekUsers: "Nenhum usuario teve dados na semana mais recente.",
         emptySearch: "Nenhum usuario corresponde a busca atual.",
         selectionCount: (count) =>
           `${count} selecionado${count === 1 ? "" : "s"}`,
@@ -1635,17 +1636,21 @@
       function renderSummaryTable() {
         const metricKey = metricSelect.value;
         const metricLabel = metricLabels[metricKey];
-        const selectedData = getSelectedUserData();
         const activeWeeks = getActiveWeeks();
+        const latestWeekIndex = archiveWeeks.length - 1;
+        const latestWeekUsers =
+          latestWeekIndex >= 0
+            ? users.filter((user) => user.weeks[latestWeekIndex] !== null)
+            : [];
 
         summaryCaption.textContent = MESSAGES.summaryCaption(metricLabel);
 
-        if (selectedData.length === 0) {
-          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="7">${MESSAGES.emptySelection}</td></tr>`;
+        if (latestWeekUsers.length === 0) {
+          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="7">${MESSAGES.noLatestWeekUsers}</td></tr>`;
           return;
         }
 
-        summaryBody.innerHTML = selectedData
+        const summaryRows = latestWeekUsers
           .map((user) => {
             const color = getUserColor(user.username);
             const startIndex = Math.min(rangeStartIndex, rangeEndIndex);
@@ -1671,7 +1676,10 @@
                 populatedWeeks.length
               : null;
 
-            return `
+            return {
+              averageValue,
+              username: user.username,
+              markup: `
               <tr>
                 <td>
                   <span class="summary-user"><span class="chip-swatch" style="background:${color}"></span>${escapeHtml(user.username)}</span>
@@ -1683,9 +1691,21 @@
                 <td>${peakPoint ? escapeHtml(formatNumber(peakPoint.value)) : "-"}</td>
                 <td>${averageValue !== null ? escapeHtml(formatNumber(Math.round(averageValue))) : "-"}</td>
               </tr>
-            `;
+            `,
+            };
           })
-          .join("");
+          .sort((left, right) => {
+            const leftAverage = left.averageValue ?? -Infinity;
+            const rightAverage = right.averageValue ?? -Infinity;
+            if (rightAverage !== leftAverage) {
+              return rightAverage - leftAverage;
+            }
+            return left.username.localeCompare(right.username, undefined, {
+              sensitivity: "base",
+            });
+          });
+
+        summaryBody.innerHTML = summaryRows.map((row) => row.markup).join("");
       }
 
       async function loadArchiveData() {

@@ -534,10 +534,14 @@
         </section>
       </section>
 
-      <section class="summary-card" aria-label="Selected user summary">
-        <h2>Selected User Summary</h2>
+      <section
+        class="summary-card"
+        aria-label="Latest week active user summary"
+      >
+        <h2>Latest Week Active Users</h2>
         <p id="summary-caption">
-          Review the latest, peak, and average values for the selected metric.
+          Review the latest, peak, and average values for users active in the
+          most recent week.
         </p>
         <div class="summary-table-wrap">
           <table
@@ -648,8 +652,9 @@
         chartTitle: (metric) => `${metric} Trend`,
         chartAriaLabel: (metric) => `Weekly ${metric} trend chart`,
         summaryCaption: (metric) =>
-          `Review the latest, peak, and average ${metric.toLowerCase()} values for the selected users.`,
+          `Review the latest, peak, and average ${metric.toLowerCase()} values for users active in the most recent week.`,
         emptySelection: "Select at least one user to plot weekly stats.",
+        noLatestWeekUsers: "No users had data in the most recent week.",
         emptySearch: "No users match the current search.",
         selectionCount: (count) => `${count} selected`,
         weekCount: (count) => `${count} week${count === 1 ? "" : "s"}`,
@@ -1615,17 +1620,21 @@
       function renderSummaryTable() {
         const metricKey = metricSelect.value;
         const metricLabel = metricLabels[metricKey];
-        const selectedData = getSelectedUserData();
         const activeWeeks = getActiveWeeks();
+        const latestWeekIndex = archiveWeeks.length - 1;
+        const latestWeekUsers =
+          latestWeekIndex >= 0
+            ? users.filter((user) => user.weeks[latestWeekIndex] !== null)
+            : [];
 
         summaryCaption.textContent = MESSAGES.summaryCaption(metricLabel);
 
-        if (selectedData.length === 0) {
-          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="7">${MESSAGES.emptySelection}</td></tr>`;
+        if (latestWeekUsers.length === 0) {
+          summaryBody.innerHTML = `<tr><td class="table-empty" colspan="7">${MESSAGES.noLatestWeekUsers}</td></tr>`;
           return;
         }
 
-        summaryBody.innerHTML = selectedData
+        const summaryRows = latestWeekUsers
           .map((user) => {
             const color = getUserColor(user.username);
             const startIndex = Math.min(rangeStartIndex, rangeEndIndex);
@@ -1651,7 +1660,10 @@
                 populatedWeeks.length
               : null;
 
-            return `
+            return {
+              averageValue,
+              username: user.username,
+              markup: `
               <tr>
                 <td>
                   <span class="summary-user"><span class="chip-swatch" style="background:${color}"></span>${escapeHtml(user.username)}</span>
@@ -1663,9 +1675,21 @@
                 <td>${peakPoint ? escapeHtml(formatNumber(peakPoint.value)) : "-"}</td>
                 <td>${averageValue !== null ? escapeHtml(formatNumber(Math.round(averageValue))) : "-"}</td>
               </tr>
-            `;
+            `,
+            };
           })
-          .join("");
+          .sort((left, right) => {
+            const leftAverage = left.averageValue ?? -Infinity;
+            const rightAverage = right.averageValue ?? -Infinity;
+            if (rightAverage !== leftAverage) {
+              return rightAverage - leftAverage;
+            }
+            return left.username.localeCompare(right.username, undefined, {
+              sensitivity: "base",
+            });
+          });
+
+        summaryBody.innerHTML = summaryRows.map((row) => row.markup).join("");
       }
 
       async function loadArchiveData() {
