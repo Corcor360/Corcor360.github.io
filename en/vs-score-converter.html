@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VS Score Converter</title>
+    <link rel="stylesheet" href="../vs-tracker.css" />
+    <style>
+      .controls-card,
+      .summary-card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 10px 22px rgba(43, 58, 48, 0.08);
+        padding: 1rem;
+      }
+
+      .controls-card {
+        margin-bottom: 1rem;
+      }
+
+      .controls-card h2,
+      .summary-card h2 {
+        margin: 0 0 0.45rem;
+        font-size: 1.06rem;
+      }
+
+      .controls-card p,
+      .summary-card p {
+        margin-top: 0;
+      }
+
+      .field {
+        margin-bottom: 0.85rem;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-weight: 700;
+      }
+
+      .file-input {
+        width: 100%;
+        padding: 0.48rem 0.55rem;
+        border: 1px solid #8ca595;
+        border-radius: 10px;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+      }
+
+      .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      .btn {
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+      }
+
+      .btn:hover:enabled {
+        background: #23463c;
+      }
+
+      .btn-secondary {
+        border-color: #7f968b;
+        background: #f1f6f3;
+        color: #20453a;
+      }
+
+      .btn-secondary:hover:enabled {
+        background: #e2ece6;
+      }
+
+      .btn:disabled,
+      .btn-secondary:disabled {
+        opacity: 0.62;
+        cursor: not-allowed;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(130px, 1fr));
+        gap: 0.6rem;
+      }
+
+      .summary-item {
+        border: 1px solid #cdd9d1;
+        border-radius: 10px;
+        background: #f9fcfa;
+        padding: 0.6rem;
+      }
+
+      .summary-item strong {
+        display: block;
+        font-size: 1rem;
+        color: #1f4b3a;
+      }
+
+      .summary-item span {
+        display: block;
+        margin-top: 0.2rem;
+        font-size: 0.83rem;
+        color: #456358;
+      }
+
+      .empty-row td {
+        text-align: center;
+        color: #57736a;
+        background: #fbfdf9;
+      }
+
+      @media (max-width: 860px) {
+        .summary-grid {
+          grid-template-columns: repeat(2, minmax(130px, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="title-row">
+        <h1>VS Score Converter</h1>
+        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+      </div>
+
+      <p class="subtitle">
+        Upload one or more images. Each image is sent one at a time to the VS
+        score proxy endpoint and all returned records are compiled into one
+        table.
+      </p>
+
+      <section class="controls-card" aria-label="Upload controls">
+        <h2>Upload Images</h2>
+        <p>
+          Endpoint: <strong>https://api-proxy.corcor360.workers.dev</strong>
+        </p>
+
+        <div class="field">
+          <label for="image-input">Image files</label>
+          <input
+            id="image-input"
+            class="file-input"
+            type="file"
+            accept="image/*"
+            multiple
+          />
+        </div>
+
+        <div class="controls-row">
+          <button id="run-button" class="btn" type="button">Convert</button>
+          <button id="clear-button" class="btn btn-secondary" type="button">
+            Clear Results
+          </button>
+          <button
+            id="download-button"
+            class="btn btn-secondary"
+            type="button"
+            disabled
+          >
+            Download CSV
+          </button>
+        </div>
+      </section>
+
+      <section class="summary-card" aria-label="Processing summary">
+        <h2>Summary</h2>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <strong id="summary-selected">0</strong>
+            <span>Images Selected</span>
+          </div>
+          <div class="summary-item">
+            <strong id="summary-processed">0</strong>
+            <span>Images Processed</span>
+          </div>
+          <div class="summary-item">
+            <strong id="summary-success">0</strong>
+            <span>Successful Requests</span>
+          </div>
+          <div class="summary-item">
+            <strong id="summary-failed">0</strong>
+            <span>Failed Requests</span>
+          </div>
+          <div class="summary-item">
+            <strong id="summary-records">0</strong>
+            <span>Extracted Records</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="table-wrap" style="margin-top: 1rem">
+        <table aria-label="Converted VS score rows">
+          <thead>
+            <tr>
+              <th scope="col">Image Filename</th>
+              <th scope="col">Username</th>
+              <th scope="col">Points</th>
+            </tr>
+          </thead>
+          <tbody id="result-body">
+            <tr class="empty-row">
+              <td colspan="3">Upload images and click Convert.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p id="status-message" class="status" role="status" aria-live="polite">
+        Ready to process images.
+      </p>
+    </main>
+
+    <script>
+      const ENDPOINT_URL = "https://api-proxy.corcor360.workers.dev";
+
+      const imageInput = document.getElementById("image-input");
+      const runButton = document.getElementById("run-button");
+      const clearButton = document.getElementById("clear-button");
+      const downloadButton = document.getElementById("download-button");
+      const resultBody = document.getElementById("result-body");
+      const statusMessage = document.getElementById("status-message");
+
+      const summarySelected = document.getElementById("summary-selected");
+      const summaryProcessed = document.getElementById("summary-processed");
+      const summarySuccess = document.getElementById("summary-success");
+      const summaryFailed = document.getElementById("summary-failed");
+      const summaryRecords = document.getElementById("summary-records");
+
+      let compiledRows = [];
+      let isProcessing = false;
+
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status";
+        if (type) {
+          statusMessage.classList.add(type);
+        }
+      }
+
+      function setButtonsEnabled(enabled) {
+        runButton.disabled = !enabled;
+        clearButton.disabled = !enabled;
+        downloadButton.disabled = !enabled || compiledRows.length === 0;
+      }
+
+      function updateSummary({
+        selected,
+        processed,
+        success,
+        failed,
+        records,
+      }) {
+        summarySelected.textContent = String(selected);
+        summaryProcessed.textContent = String(processed);
+        summarySuccess.textContent = String(success);
+        summaryFailed.textContent = String(failed);
+        summaryRecords.textContent = String(records);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function escapeCsv(value) {
+        const text = String(value ?? "");
+        if (text.includes('"') || text.includes(",") || text.includes("\n")) {
+          return `"${text.replace(/\"/g, '""')}"`;
+        }
+        return text;
+      }
+
+      function parsePoints(value) {
+        const raw = String(value || "").trim();
+        if (!raw) {
+          return null;
+        }
+
+        const normalized = raw.replace(/\s+/g, "").replace(/,/g, "");
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      function formatPoints(value) {
+        if (value === null || value === undefined) {
+          return "";
+        }
+
+        return value.toLocaleString("en-US", {
+          maximumFractionDigits: 0,
+        });
+      }
+
+      function normalizeAlliance(value) {
+        const trimmed = String(value || "").trim();
+        if (!trimmed) {
+          return "";
+        }
+
+        return trimmed.replace(/\](?=\S)/g, "] ");
+      }
+
+      function extractRecordsFromPayload(payload) {
+        let entries = [];
+
+        if (payload && Array.isArray(payload.outputs)) {
+          entries = payload.outputs;
+        } else if (Array.isArray(payload)) {
+          entries = payload;
+        } else if (payload && typeof payload === "object") {
+          entries = [payload];
+        }
+
+        const extracted = [];
+
+        entries.forEach((entry) => {
+          if (!entry || typeof entry !== "object") {
+            return;
+          }
+
+          const parseError = Boolean(entry.parse_error);
+          const records = Array.isArray(entry.username_points_records)
+            ? entry.username_points_records
+            : [];
+
+          records.forEach((recordEntry) => {
+            const rawRecords =
+              recordEntry && typeof recordEntry.records === "string"
+                ? recordEntry.records
+                : "";
+            const explicitUsername =
+              recordEntry && typeof recordEntry.username === "string"
+                ? recordEntry.username.trim()
+                : "";
+            const explicitPoints =
+              recordEntry && typeof recordEntry.points === "string"
+                ? recordEntry.points.trim()
+                : "";
+
+            const parts = rawRecords
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter((line) => line !== "");
+
+            const username = explicitUsername || parts[0] || "";
+            const alliance = normalizeAlliance(parts[1] || "");
+            const pointsRaw = explicitPoints || parts[2] || "";
+
+            extracted.push({
+              username,
+              alliance,
+              pointsRaw,
+              pointsNumber: parsePoints(pointsRaw),
+              parseError,
+            });
+          });
+
+          if (records.length === 0) {
+            extracted.push({
+              username: "",
+              alliance: "",
+              pointsRaw: "",
+              pointsNumber: null,
+              parseError,
+            });
+          }
+        });
+
+        return extracted;
+      }
+
+      function getSortedRows(rows) {
+        return [...rows].sort((left, right) => {
+          const leftUsername = String(left.username || "");
+          const rightUsername = String(right.username || "");
+          const usernameCompare = leftUsername.localeCompare(
+            rightUsername,
+            undefined,
+            { sensitivity: "base" },
+          );
+
+          if (usernameCompare !== 0) {
+            return usernameCompare;
+          }
+
+          return String(left.imageFilename || "").localeCompare(
+            String(right.imageFilename || ""),
+            undefined,
+            { sensitivity: "base" },
+          );
+        });
+      }
+
+      function renderTable(rows) {
+        if (!rows.length) {
+          resultBody.innerHTML =
+            '<tr class="empty-row"><td colspan="3">Upload images and click Convert.</td></tr>';
+          return;
+        }
+
+        resultBody.innerHTML = getSortedRows(rows)
+          .map(
+            (row) => `
+              <tr>
+                <td class="name-col">${escapeHtml(row.imageFilename)}</td>
+                <td class="name-col">${escapeHtml(row.username)}</td>
+                <td>${escapeHtml(formatPoints(row.pointsNumber) || row.pointsRaw)}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function buildCsvContent(rows) {
+        const header = ["image_filename", "username", "points"];
+
+        const lines = [header.join(",")];
+
+        rows.forEach((row) => {
+          lines.push(
+            [
+              escapeCsv(row.imageFilename),
+              escapeCsv(row.username),
+              escapeCsv(formatPoints(row.pointsNumber) || row.pointsRaw),
+            ].join(","),
+          );
+        });
+
+        return lines.join("\n");
+      }
+
+      function downloadCsv() {
+        if (!compiledRows.length) {
+          return;
+        }
+
+        const csvContent = buildCsvContent(getSortedRows(compiledRows));
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        const stamp = new Date().toISOString().slice(0, 10);
+        link.href = url;
+        link.download = `vs-score-converter-${stamp}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+      }
+
+      function clearResults() {
+        if (isProcessing) {
+          return;
+        }
+
+        compiledRows = [];
+        renderTable(compiledRows);
+        updateSummary({
+          selected: imageInput.files.length,
+          processed: 0,
+          success: 0,
+          failed: 0,
+          records: 0,
+        });
+        downloadButton.disabled = true;
+        setStatus("Ready to process images.");
+      }
+
+      async function processImagesSequentially() {
+        if (isProcessing) {
+          return;
+        }
+
+        const files = Array.from(imageInput.files || []);
+        if (!files.length) {
+          setStatus("Select at least one image before converting.", "error");
+          return;
+        }
+
+        isProcessing = true;
+        setButtonsEnabled(false);
+
+        compiledRows = [];
+        let processed = 0;
+        let success = 0;
+        let failed = 0;
+        let records = 0;
+
+        updateSummary({
+          selected: files.length,
+          processed,
+          success,
+          failed,
+          records,
+        });
+        renderTable(compiledRows);
+
+        for (const file of files) {
+          processed += 1;
+          setStatus(
+            `Processing image ${processed} of ${files.length}: ${file.name}`,
+          );
+          updateSummary({
+            selected: files.length,
+            processed,
+            success,
+            failed,
+            records,
+          });
+
+          try {
+            const formData = new FormData();
+            formData.append("image", file, file.name);
+
+            const response = await fetch(ENDPOINT_URL, {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!response.ok) {
+              failed += 1;
+              compiledRows.push({
+                imageFilename: file.name,
+                rowIndex: "",
+                username: "",
+                alliance: "",
+                pointsRaw: "",
+                pointsNumber: null,
+                parseError: true,
+                requestStatus: `http_${response.status}`,
+              });
+              continue;
+            }
+
+            let payload;
+            try {
+              payload = await response.json();
+            } catch (jsonError) {
+              failed += 1;
+              compiledRows.push({
+                imageFilename: file.name,
+                rowIndex: "",
+                username: "",
+                alliance: "",
+                pointsRaw: "",
+                pointsNumber: null,
+                parseError: true,
+                requestStatus: "invalid_json",
+              });
+              continue;
+            }
+
+            const extracted = extractRecordsFromPayload(payload);
+            if (!extracted.length) {
+              compiledRows.push({
+                imageFilename: file.name,
+                rowIndex: "",
+                username: "",
+                alliance: "",
+                pointsRaw: "",
+                pointsNumber: null,
+                parseError: true,
+                requestStatus: "ok_empty",
+              });
+            } else {
+              extracted.forEach((row, index) => {
+                compiledRows.push({
+                  imageFilename: file.name,
+                  rowIndex: index + 1,
+                  username: row.username,
+                  alliance: row.alliance,
+                  pointsRaw: row.pointsRaw,
+                  pointsNumber: row.pointsNumber,
+                  parseError: row.parseError,
+                  requestStatus: "ok",
+                });
+              });
+              records += extracted.filter(
+                (row) => row.username || row.pointsRaw,
+              ).length;
+            }
+
+            success += 1;
+          } catch (error) {
+            failed += 1;
+            compiledRows.push({
+              imageFilename: file.name,
+              rowIndex: "",
+              username: "",
+              alliance: "",
+              pointsRaw: "",
+              pointsNumber: null,
+              parseError: true,
+              requestStatus: "request_failed",
+            });
+          }
+
+          renderTable(compiledRows);
+          updateSummary({
+            selected: files.length,
+            processed,
+            success,
+            failed,
+            records,
+          });
+        }
+
+        if (failed === files.length) {
+          setStatus(
+            "All image requests failed. Review request status values in the table.",
+            "error",
+          );
+        } else if (failed > 0) {
+          setStatus(
+            `Completed with partial success: ${success} succeeded, ${failed} failed.`,
+            "success",
+          );
+        } else {
+          setStatus(
+            `Completed successfully: processed ${success} image${success === 1 ? "" : "s"}.`,
+            "success",
+          );
+        }
+
+        isProcessing = false;
+        setButtonsEnabled(true);
+      }
+
+      runButton.addEventListener("click", processImagesSequentially);
+      clearButton.addEventListener("click", clearResults);
+      downloadButton.addEventListener("click", downloadCsv);
+      imageInput.addEventListener("change", () => {
+        updateSummary({
+          selected: imageInput.files.length,
+          processed: 0,
+          success: 0,
+          failed: 0,
+          records: compiledRows.length,
+        });
+      });
+
+      updateSummary({
+        selected: 0,
+        processed: 0,
+        success: 0,
+        failed: 0,
+        records: 0,
+      });
+    </script>
+  </body>
+</html>
