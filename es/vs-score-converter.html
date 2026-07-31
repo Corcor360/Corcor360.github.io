@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VS Score Converter</title>
+    <title>Convertidor de puntuacion VS</title>
     <link rel="stylesheet" href="../vs-tracker.css" />
     <style>
       .controls-card,
@@ -119,6 +119,26 @@
         background: #fbfdf9;
       }
 
+      .lang-switch {
+        margin: 0.75rem 0 1.25rem;
+      }
+
+      .lang-switch label {
+        display: inline-block;
+        margin-right: 0.55rem;
+        font-weight: 700;
+      }
+
+      .lang-switch select {
+        width: min(280px, 100%);
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #3d5f56;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
+      }
+
       @media (max-width: 860px) {
         .summary-grid {
           grid-template-columns: repeat(2, minmax(130px, 1fr));
@@ -129,51 +149,35 @@
   <body>
     <main class="page">
       <div class="title-row">
-        <h1>VS Score Converter</h1>
-        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+        <h1>Convertidor de puntuacion VS</h1>
+        <a class="back-link" href="PPLE-Home.html">Volver al inicio</a>
       </div>
 
       <p class="subtitle">
-        Upload one or more images. Each image is sent one at a time to the VS
-        score proxy endpoint and all returned records are compiled into one
-        table.
+        Sube una o mas imagenes. Cada imagen se envia una a la vez al endpoint
+        proxy de VS y todos los registros devueltos se compilan en una sola
+        tabla.
       </p>
 
-      <div class="lang-switch" style="margin: 0.75rem 0 1.25rem">
-        <label
-          for="language-select"
-          style="display: inline-block; margin-right: 0.55rem; font-weight: 700"
-          >Language</label
-        >
-        <select
-          id="language-select"
-          aria-label="Select language"
-          style="
-            width: min(280px, 100%);
-            padding: 0.45rem 0.6rem;
-            border-radius: 8px;
-            border: 1px solid #3d5f56;
-            background: #fff;
-            color: #1f3f36;
-            font: inherit;
-          "
-        >
-          <option value="../en/vs-score-converter.html" selected>
-            English
+      <div class="lang-switch">
+        <label for="language-select">Idioma</label>
+        <select id="language-select" aria-label="Seleccionar idioma">
+          <option value="../en/vs-score-converter.html">English</option>
+          <option value="../es/vs-score-converter.html" selected>
+            Español
           </option>
-          <option value="../es/vs-score-converter.html">Español</option>
           <option value="../pt/vs-score-converter.html">Português</option>
         </select>
       </div>
 
-      <section class="controls-card" aria-label="Upload controls">
-        <h2>Upload Images</h2>
+      <section class="controls-card" aria-label="Controles de carga">
+        <h2>Subir imagenes</h2>
         <p>
           Endpoint: <strong>https://api-proxy.corcor360.workers.dev</strong>
         </p>
 
         <div class="field">
-          <label for="image-input">Image files</label>
+          <label for="image-input">Archivos de imagen</label>
           <input
             id="image-input"
             class="file-input"
@@ -184,9 +188,9 @@
         </div>
 
         <div class="controls-row">
-          <button id="run-button" class="btn" type="button">Convert</button>
+          <button id="run-button" class="btn" type="button">Convertir</button>
           <button id="clear-button" class="btn btn-secondary" type="button">
-            Clear Results
+            Limpiar resultados
           </button>
           <button
             id="download-button"
@@ -194,56 +198,56 @@
             type="button"
             disabled
           >
-            Download CSV
+            Descargar CSV
           </button>
         </div>
       </section>
 
-      <section class="summary-card" aria-label="Processing summary">
-        <h2>Summary</h2>
+      <section class="summary-card" aria-label="Resumen de procesamiento">
+        <h2>Resumen</h2>
         <div class="summary-grid">
           <div class="summary-item">
             <strong id="summary-selected">0</strong>
-            <span>Images Selected</span>
+            <span>Imagenes seleccionadas</span>
           </div>
           <div class="summary-item">
             <strong id="summary-processed">0</strong>
-            <span>Images Processed</span>
+            <span>Imagenes procesadas</span>
           </div>
           <div class="summary-item">
             <strong id="summary-success">0</strong>
-            <span>Successful Requests</span>
+            <span>Solicitudes exitosas</span>
           </div>
           <div class="summary-item">
             <strong id="summary-failed">0</strong>
-            <span>Failed Requests</span>
+            <span>Solicitudes fallidas</span>
           </div>
           <div class="summary-item">
             <strong id="summary-records">0</strong>
-            <span>Extracted Records</span>
+            <span>Registros extraidos</span>
           </div>
         </div>
       </section>
 
       <div class="table-wrap" style="margin-top: 1rem">
-        <table aria-label="Converted VS score rows">
+        <table aria-label="Filas convertidas de puntuacion VS">
           <thead>
             <tr>
-              <th scope="col">Image Filename</th>
-              <th scope="col">Username</th>
-              <th scope="col">Points</th>
+              <th scope="col">Nombre del archivo</th>
+              <th scope="col">Usuario</th>
+              <th scope="col">Puntos</th>
             </tr>
           </thead>
           <tbody id="result-body">
             <tr class="empty-row">
-              <td colspan="3">Upload images and click Convert.</td>
+              <td colspan="3">Sube imagenes y haz clic en Convertir.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p id="status-message" class="status" role="status" aria-live="polite">
-        Ready to process images.
+        Listo para procesar imagenes.
       </p>
     </main>
 
@@ -328,7 +332,7 @@
           return "";
         }
 
-        return value.toLocaleString("en-US", {
+        return value.toLocaleString("es-ES", {
           maximumFractionDigits: 0,
         });
       }
@@ -436,7 +440,7 @@
       function renderTable(rows) {
         if (!rows.length) {
           resultBody.innerHTML =
-            '<tr class="empty-row"><td colspan="3">Upload images and click Convert.</td></tr>';
+            '<tr class="empty-row"><td colspan="3">Sube imagenes y haz clic en Convertir.</td></tr>';
           return;
         }
 
@@ -454,8 +458,7 @@
       }
 
       function buildCsvContent(rows) {
-        const header = ["image_filename", "username", "points"];
-
+        const header = ["nombre_archivo", "usuario", "puntos"];
         const lines = [header.join(",")];
 
         rows.forEach((row) => {
@@ -485,7 +488,7 @@
         const link = document.createElement("a");
         const stamp = new Date().toISOString().slice(0, 10);
         link.href = url;
-        link.download = `vs-score-converter-${stamp}.csv`;
+        link.download = `convertidor-vs-${stamp}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -508,7 +511,7 @@
           records: 0,
         });
         downloadButton.disabled = true;
-        setStatus("Ready to process images.");
+        setStatus("Listo para procesar imagenes.");
       }
 
       async function processImagesSequentially() {
@@ -518,7 +521,10 @@
 
         const files = Array.from(imageInput.files || []);
         if (!files.length) {
-          setStatus("Select at least one image before converting.", "error");
+          setStatus(
+            "Selecciona al menos una imagen antes de convertir.",
+            "error",
+          );
           return;
         }
 
@@ -543,7 +549,7 @@
         for (const file of files) {
           processed += 1;
           setStatus(
-            `Processing image ${processed} of ${files.length}: ${file.name}`,
+            `Procesando imagen ${processed} de ${files.length}: ${file.name}`,
           );
           updateSummary({
             selected: files.length,
@@ -566,7 +572,6 @@
               failed += 1;
               compiledRows.push({
                 imageFilename: file.name,
-                rowIndex: "",
                 username: "",
                 alliance: "",
                 pointsRaw: "",
@@ -584,7 +589,6 @@
               failed += 1;
               compiledRows.push({
                 imageFilename: file.name,
-                rowIndex: "",
                 username: "",
                 alliance: "",
                 pointsRaw: "",
@@ -599,7 +603,6 @@
             if (!extracted.length) {
               compiledRows.push({
                 imageFilename: file.name,
-                rowIndex: "",
                 username: "",
                 alliance: "",
                 pointsRaw: "",
@@ -608,10 +611,9 @@
                 requestStatus: "ok_empty",
               });
             } else {
-              extracted.forEach((row, index) => {
+              extracted.forEach((row) => {
                 compiledRows.push({
                   imageFilename: file.name,
-                  rowIndex: index + 1,
                   username: row.username,
                   alliance: row.alliance,
                   pointsRaw: row.pointsRaw,
@@ -630,7 +632,6 @@
             failed += 1;
             compiledRows.push({
               imageFilename: file.name,
-              rowIndex: "",
               username: "",
               alliance: "",
               pointsRaw: "",
@@ -652,17 +653,17 @@
 
         if (failed === files.length) {
           setStatus(
-            "All image requests failed. Review request status values in the table.",
+            "Todas las solicitudes de imagen fallaron. Revisa los resultados o el proxy.",
             "error",
           );
         } else if (failed > 0) {
           setStatus(
-            `Completed with partial success: ${success} succeeded, ${failed} failed.`,
+            `Completado con exito parcial: ${success} correctas, ${failed} fallidas.`,
             "success",
           );
         } else {
           setStatus(
-            `Completed successfully: processed ${success} image${success === 1 ? "" : "s"}.`,
+            `Completado correctamente: se procesaron ${success} imagen${success === 1 ? "" : "es"}.`,
             "success",
           );
         }
