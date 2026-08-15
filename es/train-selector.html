@@ -57,6 +57,25 @@
         opacity: 0.6;
       }
 
+      .filter-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.45rem 0.65rem;
+        background: #f8fcf9;
+        color: #1f3f36;
+        font-weight: 700;
+      }
+
+      .filter-toggle input {
+        width: 1rem;
+        height: 1rem;
+        margin: 0;
+        accent-color: var(--accent);
+      }
+
       .selection-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(190px, 1fr));
@@ -176,6 +195,10 @@
         >
           Exportar CSV
         </button>
+        <label class="filter-toggle" for="range-filter-checkbox">
+          <input id="range-filter-checkbox" type="checkbox" disabled />
+          Construcción, Tecnología, Héroe: 7.2M a 10M
+        </label>
       </div>
 
       <h2 class="section-title">Top 20 jugadores (grupo fuente)</h2>
@@ -232,6 +255,9 @@
       const languageSelect = document.getElementById("language-select");
       const generateBtn = document.getElementById("generate-btn");
       const exportBtn = document.getElementById("export-btn");
+      const rangeFilterCheckbox = document.getElementById(
+        "range-filter-checkbox",
+      );
 
       const roleViews = {
         driver: {
@@ -279,6 +305,8 @@
       const trainExpectedColumns = ["date", "conductor", "vip"];
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
       const CONDUCTOR_COOLDOWN_DAYS = 14;
+      const SCORE_RANGE_MIN = 7200000;
+      const SCORE_RANGE_MAX = 10000000;
       const LOCALE = "es-ES";
       const MESSAGES = {
         loading: "Cargando datos del tracker...",
@@ -291,10 +319,14 @@
         noValidRows: "No se encontraron filas válidas en el CSV.",
         ignoreInvalid:
           "El archivo de exclusión no es válido. Se esperaba un objeto JSON con un arreglo exclude o ignored.",
-        notEnoughTopPlayers:
-          "Se necesitan al menos 15 jugadores elegibles después de las exclusiones y el enfriamiento de 14 días para conductor.",
-        ready: (rowCount) =>
-          `Se cargaron ${rowCount} jugadores elegibles del VS Tracker después de las exclusiones. Haz clic en Generar equipos aleatorios para elegir 5 conductores, 5 VIP y 5 suplentes.`,
+        notEnoughTopPlayers: (isFiltered) =>
+          isFiltered
+            ? "Se necesitan al menos 15 jugadores elegibles con el filtro de 7.2M-10M en Construcción/Tecnología/Héroe activado."
+            : "Se necesitan al menos 15 jugadores elegibles después de las exclusiones y el enfriamiento de 14 días para conductor.",
+        ready: (rowCount, isFiltered) =>
+          isFiltered
+            ? `Se cargaron ${rowCount} jugadores elegibles del VS Tracker con el filtro de 7.2M-10M en Construcción/Tecnología/Héroe. Haz clic en Generar equipos aleatorios para elegir 5 conductores, 5 VIP y 5 suplentes.`
+            : `Se cargaron ${rowCount} jugadores elegibles del VS Tracker después de las exclusiones. Haz clic en Generar equipos aleatorios para elegir 5 conductores, 5 VIP y 5 suplentes.`,
         randomDone:
           "Equipos aleatorios generados. Usa Exportar CSV para descargar la selección actual.",
         loadError: (message) =>
@@ -302,9 +334,11 @@
       };
 
       const state = {
+        eligiblePlayers: [],
         topPlayers: [],
         excludedUsers: new Set(),
         usernameAliasLookup: new Map(),
+        isRangeFilterEnabled: false,
         assignment: {
           driver: [],
           vip: [],
@@ -640,6 +674,46 @@
         return arr;
       }
 
+      function isScoreRangeMatch(player) {
+        return (
+          player.constructionScore !== null &&
+          player.constructionScore >= SCORE_RANGE_MIN &&
+          player.constructionScore <= SCORE_RANGE_MAX &&
+          player.techScore !== null &&
+          player.techScore >= SCORE_RANGE_MIN &&
+          player.techScore <= SCORE_RANGE_MAX &&
+          player.heroScore !== null &&
+          player.heroScore >= SCORE_RANGE_MIN &&
+          player.heroScore <= SCORE_RANGE_MAX
+        );
+      }
+
+      function resetAssignment() {
+        state.assignment.driver = [];
+        state.assignment.vip = [];
+        state.assignment.substitute = [];
+      }
+
+      function recomputeTopPlayers() {
+        const sourcePlayers = state.isRangeFilterEnabled
+          ? state.eligiblePlayers.filter((player) => isScoreRangeMatch(player))
+          : [...state.eligiblePlayers];
+
+        sourcePlayers.sort((a, b) => b.weeklyTotal - a.weeklyTotal);
+        state.topPlayers = state.isRangeFilterEnabled
+          ? sourcePlayers
+          : sourcePlayers.slice(0, 20);
+
+        resetAssignment();
+        renderPoolRows(state.topPlayers);
+        renderAssignment();
+        generateBtn.disabled = state.topPlayers.length === 0;
+        setStatus(
+          MESSAGES.ready(state.topPlayers.length, state.isRangeFilterEnabled),
+          "success",
+        );
+      }
+
       function renderPoolRows(players) {
         poolBody.innerHTML = "";
 
@@ -695,11 +769,6 @@
       }
 
       function generateRandomTeams() {
-        if (state.topPlayers.length < 15) {
-          setStatus(MESSAGES.notEnoughTopPlayers, "error");
-          return;
-        }
-
         const randomized = shuffleArray(state.topPlayers).slice(0, 15);
 
         state.assignment.driver = randomized.slice(0, 5);
@@ -864,14 +933,17 @@
             const hero = getValue(cells, headerMap.hero);
             const mobilization = getValue(cells, headerMap.mobilization);
             const buster = getValue(cells, headerMap.buster);
+            const constructionScore = toNumber(construction);
+            const techScore = toNumber(tech);
+            const heroScore = toNumber(hero);
 
             let totalScore = getValue(cells, headerMap["total score"]);
 
             const dayNumbers = [
               toNumber(radar),
-              toNumber(construction),
-              toNumber(tech),
-              toNumber(hero),
+              constructionScore,
+              techScore,
+              heroScore,
               toNumber(mobilization),
               toNumber(buster),
             ];
@@ -892,6 +964,9 @@
             dataRows.push({
               username,
               weeklyTotal: computedWeeklyTotal,
+              constructionScore,
+              techScore,
+              heroScore,
             });
           }
 
@@ -899,16 +974,16 @@
             throw new Error(MESSAGES.noValidRows);
           }
 
-          dataRows.sort((a, b) => b.weeklyTotal - a.weeklyTotal);
-          state.topPlayers = dataRows.slice(0, 20);
-
-          renderPoolRows(state.topPlayers);
-          generateBtn.disabled = state.topPlayers.length < 15;
-          setStatus(MESSAGES.ready(state.topPlayers.length), "success");
+          state.eligiblePlayers = dataRows;
+          rangeFilterCheckbox.disabled = false;
+          recomputeTopPlayers();
         } catch (error) {
           poolBody.innerHTML = "";
           generateBtn.disabled = true;
           exportBtn.disabled = true;
+          rangeFilterCheckbox.checked = false;
+          rangeFilterCheckbox.disabled = true;
+          state.isRangeFilterEnabled = false;
           setStatus(MESSAGES.loadError(error.message), "error");
         }
       }
@@ -919,6 +994,11 @@
 
       exportBtn.addEventListener("click", () => {
         exportCsv();
+      });
+
+      rangeFilterCheckbox.addEventListener("change", (event) => {
+        state.isRangeFilterEnabled = event.target.checked;
+        recomputeTopPlayers();
       });
 
       loadTrackerData();
