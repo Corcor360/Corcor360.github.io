@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DS Roster</title>
+    <title>Lista DS</title>
     <link rel="stylesheet" href="../vs-tracker.css" />
     <style>
       .page {
@@ -148,72 +148,72 @@
   <body>
     <main class="page">
       <div class="title-row">
-        <h1>DS Roster</h1>
-        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+        <h1>Lista DS</h1>
+        <a class="back-link" href="PPLE-Home.html">Voltar para Home</a>
       </div>
 
       <p class="subtitle">
-        Track Requested, Primary, Substitute, and Participated status for
-        members active in the most recent
-        <strong>data/vs-archive</strong> week.
+        Acompanhe o status Solicitado, Principal, Substituto e Participou dos
+        membros ativos na semana mais recente de
+        <strong>data/vs-archive</strong>.
       </p>
       <div class="lang-switch">
-        <label for="language-select">Language</label>
+        <label for="language-select">Idioma</label>
         <select id="language-select" aria-label="Select language">
-          <option value="../en/ds-roster.html" selected>English</option>
+          <option value="../en/ds-roster.html">English</option>
           <option value="../es/ds-roster.html">Español</option>
-          <option value="../pt/ds-roster.html">Português</option>
+          <option value="../pt/ds-roster.html" selected>Português</option>
         </select>
       </div>
 
       <div class="controls-row">
         <div class="user-search">
-          <label for="user-search">Search users</label>
+          <label for="user-search">Buscar usuários</label>
           <input
             id="user-search"
             type="search"
-            placeholder="Type a username..."
+            placeholder="Digite um usuário..."
             autocomplete="off"
             spellcheck="false"
           />
         </div>
         <div class="action-buttons">
-          <button id="export-btn" type="button" disabled>Export CSV</button>
-          <button id="import-btn" type="button" disabled>Import CSV</button>
+          <button id="export-btn" type="button" disabled>Exportar CSV</button>
+          <button id="import-btn" type="button" disabled>Importar CSV</button>
           <button id="clear-btn" class="clear-button" type="button" disabled>
-            Clear all
+            Limpar tudo
           </button>
         </div>
         <input id="import-file-input" type="file" accept=".csv" hidden />
       </div>
 
       <div class="roster-meta">
-        <span id="roster-week-label">Loading latest week...</span>
+        <span id="roster-week-label">Carregando semana mais recente...</span>
         <span id="roster-count"></span>
       </div>
 
       <div class="roster-table-wrap">
-        <table class="roster-table" aria-label="DS roster checklist">
+        <table class="roster-table" aria-label="Lista de verificacao DS">
           <thead>
             <tr>
               <th scope="col">#</th>
-              <th scope="col">Username</th>
-              <th scope="col" class="role-col">Requested</th>
-              <th scope="col" class="role-col">Primary</th>
-              <th scope="col" class="role-col">Substitute</th>
-              <th scope="col" class="role-col">Participated</th>
+              <th scope="col">Usuário</th>
+              <th scope="col" class="role-col">Solicitado</th>
+              <th scope="col" class="role-col">Principal</th>
+              <th scope="col" class="role-col">Substituto</th>
+              <th scope="col" class="role-col">Participou</th>
             </tr>
           </thead>
           <tbody id="roster-body">
             <tr>
-              <td class="table-empty" colspan="6">Loading roster...</td>
+              <td class="table-empty" colspan="6">Carregando lista...</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p id="status-message" class="status" role="status" aria-live="polite">
-        Loading archive manifest...
+        Carregando manifesto do arquivo...
       </p>
     </main>
 
@@ -225,7 +225,7 @@
       const archiveBasePath = "../data/vs-archive/";
       const manifestUrl = `${archiveBasePath}manifest.json`;
       const usernameAliasUrl = "../data/user-aliases.json";
-      const locale = "en";
+      const locale = "pt";
       const metricLabels = {
         totalScore: "Total Score",
         radar: "Radar",
@@ -260,24 +260,25 @@
       };
       const STORAGE_PREFIX = "ds-roster-state::";
       const MESSAGES = {
-        loadingManifest: "Loading archive manifest...",
-        loadingData: "Loading latest week CSV...",
-        loadFailed: (message) => `Unable to load roster. ${message}`,
-        manifestArray: "Manifest must be an array of entries.",
-        noEntries: "No archive entries found in manifest.json.",
-        csvMissingRows: "CSV is empty or missing data rows.",
-        missingUsername: "CSV must include a Username column.",
-        noUsers: "No active users were found in the latest week.",
+        loadingManifest: "Carregando manifesto do arquivo...",
+        loadingData: "Carregando CSV da semana mais recente...",
+        loadFailed: (message) => `Nao foi possivel carregar a lista. ${message}`,
+        manifestArray: "O manifesto deve ser um array de entradas.",
+        noEntries: "Nenhuma entrada de arquivo encontrada em manifest.json.",
+        csvMissingRows: "O CSV esta vazio ou nao tem linhas de dados.",
+        missingUsername: "O CSV deve incluir uma coluna Username.",
+        noUsers: "Nenhum usuario ativo foi encontrado na semana mais recente.",
         loaded: (weekLabel, count) =>
-          `Loaded ${count} active member${count === 1 ? "" : "s"} for ${weekLabel}.`,
-        emptySearch: "No users match the current search.",
-        weekLabel: (label) => `Roster for ${label}`,
-        userCount: (count) => `${count} active member${count === 1 ? "" : "s"}`,
-        cleared: "All checkboxes cleared for the current week.",
-        exported: (count) => `Exported ${count} roster rows to CSV.`,
+          `${count} membro${count === 1 ? "" : "s"} ativo${count === 1 ? "" : "s"} carregado${count === 1 ? "" : "s"} para ${weekLabel}.`,
+        emptySearch: "Nenhum usuario corresponde a busca atual.",
+        weekLabel: (label) => `Lista de ${label}`,
+        userCount: (count) =>
+          `${count} membro${count === 1 ? "" : "s"} ativo${count === 1 ? "" : "s"}`,
+        cleared: "Todas as caixas de selecao foram limpas para a semana atual.",
+        exported: (count) => `${count} linhas da lista exportadas para CSV.`,
         importSummary: (matched, skipped) =>
-          `Import complete. Matched ${matched} user${matched === 1 ? "" : "s"}${skipped > 0 ? `, skipped ${skipped} unrecognized row${skipped === 1 ? "" : "s"}` : ""}.`,
-        importFailed: (message) => `Unable to import CSV. ${message}`,
+          `Importacao concluida. ${matched} usuario${matched === 1 ? "" : "s"} correspondido${matched === 1 ? "" : "s"}${skipped > 0 ? `, ${skipped} linha${skipped === 1 ? "" : "s"} nao reconhecida${skipped === 1 ? "" : "s"} ignorada${skipped === 1 ? "" : "s"}` : ""}.`,
+        importFailed: (message) => `Nao foi possivel importar o CSV. ${message}`,
       };
 
       const statusMessage = document.getElementById("status-message");
