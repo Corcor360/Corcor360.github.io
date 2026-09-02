@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DS Roster</title>
+    <link rel="stylesheet" href="../vs-tracker.css" />
+    <style>
+      .page {
+        width: min(1100px, 96vw);
+      }
+
+      .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 1rem 0;
+      }
+
+      .controls-row .user-search {
+        flex: 1 1 240px;
+      }
+
+      .controls-row label {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      .controls-row input[type="search"] {
+        width: 100%;
+        padding: 0.55rem 0.65rem;
+        border-radius: 10px;
+        border: 1px solid #8ca595;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .action-buttons button {
+        padding: 0.55rem 0.85rem;
+        border-radius: 10px;
+        border: 1px solid #3d5f56;
+        background: #2f5d50;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .action-buttons button:hover {
+        background: #22443a;
+      }
+
+      .action-buttons button.clear-button {
+        border: 1px solid #b85a5a;
+        background: #fff3f3;
+        color: #8f2929;
+      }
+
+      .action-buttons button.clear-button:hover {
+        background: #ffe4e4;
+      }
+
+      .roster-meta {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0.5rem 0 1rem;
+        color: #395248;
+        font-size: 0.93rem;
+      }
+
+      .roster-table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+
+      .roster-table {
+        width: 100%;
+        min-width: 640px;
+        border-collapse: collapse;
+      }
+
+      .roster-table th,
+      .roster-table td {
+        padding: 0.6rem 0.75rem;
+        border-bottom: 1px solid #d5e0d8;
+        text-align: left;
+      }
+
+      .roster-table th {
+        background: var(--accent-soft);
+        color: #183329;
+      }
+
+      .roster-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .roster-table th.role-col,
+      .roster-table td.role-col {
+        text-align: center;
+      }
+
+      .roster-table input[type="checkbox"] {
+        width: 1.15rem;
+        height: 1.15rem;
+        cursor: pointer;
+      }
+
+      .table-empty {
+        padding: 0.9rem;
+        text-align: center;
+        color: #55756a;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="title-row">
+        <h1>DS Roster</h1>
+        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+      </div>
+
+      <p class="subtitle">
+        Track Requested, Primary, Substitute, and Participated status for
+        members active in the most recent
+        <strong>data/vs-archive</strong> week.
+      </p>
+
+      <div class="controls-row">
+        <div class="user-search">
+          <label for="user-search">Search users</label>
+          <input
+            id="user-search"
+            type="search"
+            placeholder="Type a username..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <div class="action-buttons">
+          <button id="export-btn" type="button" disabled>Export CSV</button>
+          <button id="import-btn" type="button" disabled>Import CSV</button>
+          <button id="clear-btn" class="clear-button" type="button" disabled>
+            Clear all
+          </button>
+        </div>
+        <input id="import-file-input" type="file" accept=".csv" hidden />
+      </div>
+
+      <div class="roster-meta">
+        <span id="roster-week-label">Loading latest week...</span>
+        <span id="roster-count"></span>
+      </div>
+
+      <div class="roster-table-wrap">
+        <table class="roster-table" aria-label="DS roster checklist">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Username</th>
+              <th scope="col" class="role-col">Requested</th>
+              <th scope="col" class="role-col">Primary</th>
+              <th scope="col" class="role-col">Substitute</th>
+              <th scope="col" class="role-col">Participated</th>
+            </tr>
+          </thead>
+          <tbody id="roster-body">
+            <tr>
+              <td class="table-empty" colspan="6">Loading roster...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p id="status-message" class="status" role="status" aria-live="polite">
+        Loading archive manifest...
+      </p>
+    </main>
+
+    <script>
+      const archiveBasePath = "../data/vs-archive/";
+      const manifestUrl = `${archiveBasePath}manifest.json`;
+      const usernameAliasUrl = "../data/user-aliases.json";
+      const locale = "en";
+      const metricLabels = {
+        totalScore: "Total Score",
+        radar: "Radar",
+        construction: "Construction",
+        tech: "Tech",
+        hero: "Hero",
+        mobilization: "Mobilization",
+        buster: "Buster",
+      };
+      const metricKeys = Object.keys(metricLabels);
+      const expectedColumns = [
+        "username",
+        "radar",
+        "construction",
+        "tech",
+        "hero",
+        "mobilization",
+        "buster",
+        "daily average",
+        "total score",
+      ];
+      const roleKeys = ["requested", "primary", "substitute", "participated"];
+      const roleColumnLabels = {
+        requested: "Requested",
+        primary: "Primary",
+        substitute: "Substitute",
+        participated: "Participated",
+      };
+      const mutuallyExclusiveRoles = {
+        primary: "substitute",
+        substitute: "primary",
+      };
+      const STORAGE_PREFIX = "ds-roster-state::";
+      const MESSAGES = {
+        loadingManifest: "Loading archive manifest...",
+        loadingData: "Loading latest week CSV...",
+        loadFailed: (message) => `Unable to load roster. ${message}`,
+        manifestArray: "Manifest must be an array of entries.",
+        noEntries: "No archive entries found in manifest.json.",
+        csvMissingRows: "CSV is empty or missing data rows.",
+        missingUsername: "CSV must include a Username column.",
+        noUsers: "No active users were found in the latest week.",
+        loaded: (weekLabel, count) =>
+          `Loaded ${count} active member${count === 1 ? "" : "s"} for ${weekLabel}.`,
+        emptySearch: "No users match the current search.",
+        weekLabel: (label) => `Roster for ${label}`,
+        userCount: (count) => `${count} active member${count === 1 ? "" : "s"}`,
+        cleared: "All checkboxes cleared for the current week.",
+        exported: (count) => `Exported ${count} roster rows to CSV.`,
+        importSummary: (matched, skipped) =>
+          `Import complete. Matched ${matched} user${matched === 1 ? "" : "s"}${skipped > 0 ? `, skipped ${skipped} unrecognized row${skipped === 1 ? "" : "s"}` : ""}.`,
+        importFailed: (message) => `Unable to import CSV. ${message}`,
+      };
+
+      const statusMessage = document.getElementById("status-message");
+      const userSearchInput = document.getElementById("user-search");
+      const rosterBody = document.getElementById("roster-body");
+      const rosterWeekLabel = document.getElementById("roster-week-label");
+      const rosterCount = document.getElementById("roster-count");
+      const exportBtn = document.getElementById("export-btn");
+      const importBtn = document.getElementById("import-btn");
+      const importFileInput = document.getElementById("import-file-input");
+      const clearBtn = document.getElementById("clear-btn");
+
+      let activeUsers = [];
+      let latestWeek = null;
+      let rosterState = new Map();
+      let usernameAliasLookup = new Map();
+      let usernameCanonicalDisplayLookup = new Map();
+
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status";
+        if (type) {
+          statusMessage.classList.add(type);
+        }
+      }
+
+      function normalizeHeader(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, "");
+      }
+
+      function parseCsvLine(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let index = 0; index < line.length; index += 1) {
+          const char = line[index];
+
+          if (char === '"') {
+            if (inQuotes && line[index + 1] === '"') {
+              current += '"';
+              index += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
+      }
+
+      function parseCsv(text) {
+        return text
+          .split(/\r?\n/)
+          .filter((line) => line.trim() !== "")
+          .map((line) => parseCsvLine(line).map((cell) => cell.trim()));
+      }
+
+      function toNumber(value) {
+        if (value === null || value === undefined) {
+          return null;
+        }
+
+        const raw = String(value).trim().replace(/\s+/g, "");
+        if (raw === "") {
+          return null;
+        }
+
+        let normalized = raw;
+        const hasComma = normalized.includes(",");
+        const hasDot = normalized.includes(".");
+
+        if (hasComma && hasDot) {
+          if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+            normalized = normalized.replace(/\./g, "").replace(/,/g, ".");
+          } else {
+            normalized = normalized.replace(/,/g, "");
+          }
+        } else if (hasComma) {
+          const commaParts = normalized.split(",");
+          if (
+            commaParts.length > 2 ||
+            (commaParts.length === 2 && commaParts[1].length === 3)
+          ) {
+            normalized = normalized.replace(/,/g, "");
+          } else {
+            normalized = normalized.replace(/,/g, ".");
+          }
+        } else if (hasDot) {
+          const dotParts = normalized.split(".");
+          if (dotParts.length > 2) {
+            normalized = normalized.replace(/\./g, "");
+          }
+        }
+
+        const number = Number(normalized);
+        return Number.isFinite(number) ? number : null;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function normalizeUsernameKey(value) {
+        return String(value).toLowerCase().trim().replace(/\s+/g, "");
+      }
+
+      function applyUsernameAliasGroups(aliasGroups) {
+        usernameAliasLookup = new Map();
+        usernameCanonicalDisplayLookup = new Map();
+
+        if (!Array.isArray(aliasGroups)) {
+          return;
+        }
+
+        aliasGroups.forEach((group) => {
+          if (!group || typeof group !== "object") {
+            return;
+          }
+
+          const canonical =
+            typeof group.canonical === "string" ? group.canonical.trim() : "";
+          if (!canonical) {
+            return;
+          }
+
+          const canonicalKey = normalizeUsernameKey(canonical);
+          usernameCanonicalDisplayLookup.set(canonicalKey, canonical);
+
+          const aliases = Array.isArray(group.aliases) ? group.aliases : [];
+          aliases.forEach((alias) => {
+            if (typeof alias !== "string") {
+              return;
+            }
+            const aliasKey = normalizeUsernameKey(alias);
+            if (aliasKey) {
+              usernameAliasLookup.set(aliasKey, canonicalKey);
+            }
+          });
+        });
+      }
+
+      function resolveUsernameKey(value) {
+        const normalizedKey = normalizeUsernameKey(value);
+        return usernameAliasLookup.get(normalizedKey) || normalizedKey;
+      }
+
+      function resolveUsernameDisplay(value) {
+        const canonicalKey = resolveUsernameKey(value);
+        return (
+          usernameCanonicalDisplayLookup.get(canonicalKey) ||
+          String(value).trim()
+        );
+      }
+
+      async function loadUsernameAliasGroups() {
+        try {
+          const response = await fetch(usernameAliasUrl, { cache: "no-store" });
+          if (!response.ok) {
+            return;
+          }
+
+          const aliasGroups = await response.json();
+          applyUsernameAliasGroups(aliasGroups);
+        } catch (error) {
+          applyUsernameAliasGroups([]);
+        }
+      }
+
+      function buildHeaderMap(headerRow) {
+        const normalizedHeader = headerRow.map((value) =>
+          normalizeHeader(value),
+        );
+        const aliases = {
+          username: ["username", "user", "name"],
+          radar: ["radar", "monday", "mon"],
+          construction: ["construction", "tuesday", "tue", "tues"],
+          tech: ["tech", "wednesday", "wed"],
+          hero: ["hero", "thursday", "thu", "thur", "thurs"],
+          mobilization: ["mobilization", "friday", "fri"],
+          buster: ["buster", "saturday", "sat"],
+          "daily average": ["dailyaverage", "average", "avg"],
+          "total score": ["totalscore", "total"],
+        };
+
+        const map = {};
+        for (const key of expectedColumns) {
+          const aliasList = aliases[key] || [key];
+          map[key] = normalizedHeader.findIndex((headerName) =>
+            aliasList.includes(headerName),
+          );
+        }
+
+        return map;
+      }
+
+      function getValue(cells, index) {
+        if (index < 0 || index >= cells.length) {
+          return "";
+        }
+        return cells[index] || "";
+      }
+
+      function getMetricValueMap(cells, headerMap) {
+        const radar = toNumber(getValue(cells, headerMap.radar));
+        const construction = toNumber(getValue(cells, headerMap.construction));
+        const tech = toNumber(getValue(cells, headerMap.tech));
+        const hero = toNumber(getValue(cells, headerMap.hero));
+        const mobilization = toNumber(getValue(cells, headerMap.mobilization));
+        const buster = toNumber(getValue(cells, headerMap.buster));
+
+        return { radar, construction, tech, hero, mobilization, buster };
+      }
+
+      function getEntryLabel(entry) {
+        if (entry.labels && typeof entry.labels === "object") {
+          if (
+            typeof entry.labels[locale] === "string" &&
+            entry.labels[locale].trim() !== ""
+          ) {
+            return entry.labels[locale];
+          }
+          if (
+            typeof entry.labels.en === "string" &&
+            entry.labels.en.trim() !== ""
+          ) {
+            return entry.labels.en;
+          }
+        }
+
+        return typeof entry.label === "string" ? entry.label.trim() : "";
+      }
+
+      function getEntryCsvPath(entry) {
+        if (typeof entry.csv !== "string") {
+          return "";
+        }
+
+        const value = entry.csv.trim();
+        if (!value) {
+          return "";
+        }
+        if (/^https?:\/\//i.test(value)) {
+          return value;
+        }
+        if (value.includes("/")) {
+          return value;
+        }
+        return `${archiveBasePath}${value}`;
+      }
+
+      function isValidManifestEntry(entry) {
+        return getEntryLabel(entry) !== "" && getEntryCsvPath(entry) !== "";
+      }
+
+      function buildWeekEntries(manifest) {
+        return manifest
+          .filter(isValidManifestEntry)
+          .map((entry) => ({
+            label: getEntryLabel(entry),
+            csvPath: getEntryCsvPath(entry),
+            csvName: typeof entry.csv === "string" ? entry.csv.trim() : "",
+          }))
+          .reverse();
+      }
+
+      async function loadLatestWeekUsers(weekEntry) {
+        const response = await fetch(weekEntry.csvPath, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`${weekEntry.label}: HTTP ${response.status}`);
+        }
+
+        const csvText = await response.text();
+        const parsed = parseCsv(csvText);
+        if (parsed.length < 2) {
+          throw new Error(`${weekEntry.label}: ${MESSAGES.csvMissingRows}`);
+        }
+
+        const headerMap = buildHeaderMap(parsed[0]);
+        if (headerMap.username === -1) {
+          throw new Error(`${weekEntry.label}: ${MESSAGES.missingUsername}`);
+        }
+
+        const usersByKey = new Map();
+        for (let index = 1; index < parsed.length; index += 1) {
+          const cells = parsed[index];
+          const username = getValue(cells, headerMap.username).trim();
+          if (!username) {
+            continue;
+          }
+
+          const metricValueMap = getMetricValueMap(cells, headerMap);
+          const hasMetricData = metricKeys.some(
+            (metricKey) =>
+              metricKey !== "totalScore" && metricValueMap[metricKey] !== null,
+          );
+          if (!hasMetricData) {
+            continue;
+          }
+
+          const usernameKey = resolveUsernameKey(username);
+          if (!usersByKey.has(usernameKey)) {
+            usersByKey.set(usernameKey, {
+              username: resolveUsernameDisplay(username),
+              usernameKey,
+            });
+          }
+        }
+
+        return Array.from(usersByKey.values()).sort((left, right) =>
+          left.username.localeCompare(right.username, undefined, {
+            sensitivity: "base",
+          }),
+        );
+      }
+
+      function getStorageKey() {
+        return `${STORAGE_PREFIX}${latestWeek.csvName}`;
+      }
+
+      function pruneOldStorageKeys(currentKey) {
+        const keysToRemove = [];
+        for (let index = 0; index < localStorage.length; index += 1) {
+          const key = localStorage.key(index);
+          if (key && key.startsWith(STORAGE_PREFIX) && key !== currentKey) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+      }
+
+      function loadRosterState() {
+        const storageKey = getStorageKey();
+        rosterState = new Map();
+
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            Object.entries(parsed).forEach(([usernameKey, roles]) => {
+              rosterState.set(usernameKey, {
+                requested: Boolean(roles.requested),
+                primary: Boolean(roles.primary),
+                substitute: Boolean(roles.substitute),
+                participated: Boolean(roles.participated),
+              });
+            });
+          }
+        } catch (error) {
+          rosterState = new Map();
+        }
+
+        pruneOldStorageKeys(storageKey);
+      }
+
+      function saveRosterState() {
+        const storageKey = getStorageKey();
+        const plainObject = {};
+        rosterState.forEach((roles, usernameKey) => {
+          plainObject[usernameKey] = roles;
+        });
+        localStorage.setItem(storageKey, JSON.stringify(plainObject));
+      }
+
+      function getRolesForUser(usernameKey) {
+        if (!rosterState.has(usernameKey)) {
+          rosterState.set(usernameKey, {
+            requested: false,
+            primary: false,
+            substitute: false,
+            participated: false,
+          });
+        }
+        return rosterState.get(usernameKey);
+      }
+
+      function getFilteredUsers() {
+        const query = userSearchInput.value.trim().toLowerCase();
+        if (!query) {
+          return activeUsers;
+        }
+        return activeUsers.filter((user) =>
+          user.username.toLowerCase().includes(query),
+        );
+      }
+
+      function renderRosterTable() {
+        const filteredUsers = getFilteredUsers();
+
+        if (filteredUsers.length === 0) {
+          rosterBody.innerHTML = `<tr><td class="table-empty" colspan="6">${MESSAGES.emptySearch}</td></tr>`;
+          return;
+        }
+
+        rosterBody.innerHTML = filteredUsers
+          .map((user, index) => {
+            const roles = getRolesForUser(user.usernameKey);
+            const roleCells = roleKeys
+              .map(
+                (roleKey) => `
+                  <td class="role-col">
+                    <input
+                      type="checkbox"
+                      data-username-key="${escapeHtml(user.usernameKey)}"
+                      data-role="${roleKey}"
+                      ${roles[roleKey] ? "checked" : ""}
+                    />
+                  </td>
+                `,
+              )
+              .join("");
+
+            return `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${escapeHtml(user.username)}</td>
+                ${roleCells}
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function handleRosterCheckboxChange(event) {
+        const checkbox = event.target.closest(
+          'input[type="checkbox"][data-username-key]',
+        );
+        if (!checkbox) {
+          return;
+        }
+
+        const usernameKey = checkbox.getAttribute("data-username-key");
+        const roleKey = checkbox.getAttribute("data-role");
+        const roles = getRolesForUser(usernameKey);
+        roles[roleKey] = checkbox.checked;
+
+        // Primary and Substitute are mutually exclusive roles for a given user.
+        const exclusiveRoleKey = mutuallyExclusiveRoles[roleKey];
+        if (exclusiveRoleKey && checkbox.checked) {
+          roles[exclusiveRoleKey] = false;
+          renderRosterTable();
+        }
+
+        saveRosterState();
+      }
+
+      function clearRoster() {
+        rosterState = new Map();
+        saveRosterState();
+        renderRosterTable();
+        setStatus(MESSAGES.cleared, "success");
+      }
+
+      function buildCsvValue(value) {
+        if (/[",\n]/.test(value)) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      }
+
+      function exportRosterCsv() {
+        const header = [
+          "Username",
+          ...roleKeys.map((roleKey) => roleColumnLabels[roleKey]),
+        ];
+        const rows = activeUsers.map((user) => {
+          const roles = getRolesForUser(user.usernameKey);
+          return [
+            user.username,
+            ...roleKeys.map((roleKey) => (roles[roleKey] ? "TRUE" : "FALSE")),
+          ];
+        });
+
+        const csvContent = [header, ...rows]
+          .map((row) =>
+            row.map((cell) => buildCsvValue(String(cell))).join(","),
+          )
+          .join("\r\n");
+
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const stamp = new Date().toISOString().slice(0, 10);
+        const weekPart = latestWeek
+          ? latestWeek.csvName.replace(/\.csv$/i, "")
+          : "roster";
+        link.href = url;
+        link.download = `ds-roster-${weekPart}-${stamp}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        setStatus(MESSAGES.exported(rows.length), "success");
+      }
+
+      function importRosterCsv(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = parseCsv(String(reader.result));
+            if (parsed.length < 2) {
+              throw new Error(MESSAGES.csvMissingRows);
+            }
+
+            const headerRow = parsed[0].map((value) => normalizeHeader(value));
+            const usernameIndex = headerRow.findIndex((value) =>
+              ["username", "user", "name"].includes(value),
+            );
+            if (usernameIndex === -1) {
+              throw new Error(MESSAGES.missingUsername);
+            }
+
+            const roleIndexes = {};
+            roleKeys.forEach((roleKey) => {
+              roleIndexes[roleKey] = headerRow.findIndex(
+                (value) => value === roleKey,
+              );
+            });
+
+            let matched = 0;
+            let skipped = 0;
+
+            for (let index = 1; index < parsed.length; index += 1) {
+              const cells = parsed[index];
+              const username = getValue(cells, usernameIndex).trim();
+              if (!username) {
+                continue;
+              }
+
+              const usernameKey = resolveUsernameKey(username);
+              const isKnownUser = activeUsers.some(
+                (user) => user.usernameKey === usernameKey,
+              );
+              if (!isKnownUser) {
+                skipped += 1;
+                continue;
+              }
+
+              const roles = getRolesForUser(usernameKey);
+              roleKeys.forEach((roleKey) => {
+                const cellIndex = roleIndexes[roleKey];
+                if (cellIndex === -1) {
+                  return;
+                }
+                const cellValue = getValue(cells, cellIndex)
+                  .trim()
+                  .toLowerCase();
+                roles[roleKey] = cellValue === "true" || cellValue === "1";
+              });
+
+              // Imported data can't leave both mutually exclusive roles set.
+              if (roles.primary && roles.substitute) {
+                roles.substitute = false;
+              }
+
+              matched += 1;
+            }
+
+            saveRosterState();
+            renderRosterTable();
+            setStatus(MESSAGES.importSummary(matched, skipped), "success");
+          } catch (error) {
+            setStatus(MESSAGES.importFailed(error.message), "error");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      async function loadRosterData() {
+        setStatus(MESSAGES.loadingManifest);
+
+        try {
+          await loadUsernameAliasGroups();
+
+          const manifestResponse = await fetch(manifestUrl, {
+            cache: "no-store",
+          });
+          if (!manifestResponse.ok) {
+            throw new Error(`HTTP ${manifestResponse.status}`);
+          }
+
+          const manifest = await manifestResponse.json();
+          if (!Array.isArray(manifest)) {
+            throw new Error(MESSAGES.manifestArray);
+          }
+
+          const archiveWeeks = buildWeekEntries(manifest);
+          if (archiveWeeks.length === 0) {
+            throw new Error(MESSAGES.noEntries);
+          }
+
+          latestWeek = archiveWeeks[archiveWeeks.length - 1];
+          setStatus(MESSAGES.loadingData);
+
+          activeUsers = await loadLatestWeekUsers(latestWeek);
+          if (activeUsers.length === 0) {
+            throw new Error(MESSAGES.noUsers);
+          }
+
+          loadRosterState();
+          rosterWeekLabel.textContent = MESSAGES.weekLabel(latestWeek.label);
+          rosterCount.textContent = MESSAGES.userCount(activeUsers.length);
+          renderRosterTable();
+
+          exportBtn.disabled = false;
+          importBtn.disabled = false;
+          clearBtn.disabled = false;
+
+          setStatus(
+            MESSAGES.loaded(latestWeek.label, activeUsers.length),
+            "success",
+          );
+        } catch (error) {
+          activeUsers = [];
+          latestWeek = null;
+          rosterWeekLabel.textContent = MESSAGES.weekLabel("-");
+          rosterCount.textContent = "";
+          rosterBody.innerHTML = `<tr><td class="table-empty" colspan="6">${MESSAGES.loadFailed(error.message)}</td></tr>`;
+          setStatus(MESSAGES.loadFailed(error.message), "error");
+        }
+      }
+
+      userSearchInput.addEventListener("input", () => {
+        renderRosterTable();
+      });
+
+      rosterBody.addEventListener("change", handleRosterCheckboxChange);
+
+      clearBtn.addEventListener("click", () => {
+        clearRoster();
+      });
+
+      exportBtn.addEventListener("click", () => {
+        exportRosterCsv();
+      });
+
+      importBtn.addEventListener("click", () => {
+        importFileInput.click();
+      });
+
+      importFileInput.addEventListener("change", (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (file) {
+          importRosterCsv(file);
+        }
+        importFileInput.value = "";
+      });
+
+      loadRosterData();
+    </script>
+  </body>
+</html>
