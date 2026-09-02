@@ -262,7 +262,8 @@
       const MESSAGES = {
         loadingManifest: "Carregando manifesto do arquivo...",
         loadingData: "Carregando CSV da semana mais recente...",
-        loadFailed: (message) => `Nao foi possivel carregar a lista. ${message}`,
+        loadFailed: (message) =>
+          `Nao foi possivel carregar a lista. ${message}`,
         manifestArray: "O manifesto deve ser um array de entradas.",
         noEntries: "Nenhuma entrada de arquivo encontrada em manifest.json.",
         csvMissingRows: "O CSV esta vazio ou nao tem linhas de dados.",
@@ -278,7 +279,8 @@
         exported: (count) => `${count} linhas da lista exportadas para CSV.`,
         importSummary: (matched, skipped) =>
           `Importacao concluida. ${matched} usuario${matched === 1 ? "" : "s"} correspondido${matched === 1 ? "" : "s"}${skipped > 0 ? `, ${skipped} linha${skipped === 1 ? "" : "s"} nao reconhecida${skipped === 1 ? "" : "s"} ignorada${skipped === 1 ? "" : "s"}` : ""}.`,
-        importFailed: (message) => `Nao foi possivel importar o CSV. ${message}`,
+        importFailed: (message) =>
+          `Nao foi possivel importar o CSV. ${message}`,
       };
 
       const statusMessage = document.getElementById("status-message");
