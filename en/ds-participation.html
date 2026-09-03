@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DS Participation Stats</title>
+    <link rel="stylesheet" href="../vs-tracker.css" />
+    <style>
+      .lang-switch {
+        margin: 0.75rem 0 1.25rem;
+      }
+
+      .lang-switch label {
+        display: inline-block;
+        margin-right: 0.55rem;
+        font-weight: 700;
+      }
+
+      .lang-switch select {
+        width: min(280px, 100%);
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #3d5f56;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
+      }
+
+      .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 1.25rem;
+        margin: 0 0 1rem;
+      }
+
+      .controls-row label {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-weight: 700;
+      }
+
+      .week-picker select {
+        min-width: min(340px, 100%);
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #3d5f56;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
+      }
+
+      .week-picker p {
+        margin: 0.35rem 0 0;
+        font-size: 0.85rem;
+        color: #55756a;
+      }
+
+      .search-controls input {
+        width: min(320px, 100%);
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #3d5f56;
+        background: #fff;
+        color: #1f3f36;
+        font: inherit;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+        margin: 0 0 1rem;
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.88rem;
+      }
+
+      .legend-swatch {
+        width: 0.9rem;
+        height: 0.9rem;
+        border-radius: 4px;
+        display: inline-block;
+        border: 1px solid #96a99b;
+      }
+
+      tr.row-participated td {
+        background: #dff3e4 !important;
+        color: #165a2d;
+      }
+
+      tr.row-primary-only td {
+        background: #f7d9d9 !important;
+        color: #7a1f1f;
+      }
+
+      tr.row-substitute-only td {
+        background: #fff6cc !important;
+        color: #6b5900;
+      }
+
+      tr.row-requested-only td {
+        background: #cceee8 !important;
+        color: #0f4f45;
+      }
+
+      .table-empty {
+        padding: 0.9rem;
+        text-align: center;
+        color: #55756a;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="title-row">
+        <h1>DS Participation Stats</h1>
+        <a class="back-link" href="PPLE-Home.html">Back to Home</a>
+      </div>
+
+      <p class="subtitle">
+        Select one or more saved weeks below. CSV files are loaded from
+        <strong>data/ds-archive/</strong> based on
+        <strong>data/ds-archive/manifest.json</strong>.
+      </p>
+
+      <div class="lang-switch">
+        <label for="language-select">Language</label>
+        <select id="language-select" aria-label="Select language">
+          <option value="../en/ds-participation.html" selected>English</option>
+          <option value="../es/ds-participation.html">Español</option>
+          <option value="../pt/ds-participation.html">Português</option>
+        </select>
+      </div>
+
+      <div class="controls-row">
+        <div class="week-picker">
+          <label for="week-select">Weeks</label>
+          <select id="week-select" multiple size="6" disabled>
+            <option value="">Loading archive list...</option>
+          </select>
+          <p>
+            Select one week for detailed status colors, or multiple weeks to see
+            combined totals.
+          </p>
+        </div>
+        <div class="search-controls">
+          <label for="user-search">Search Username</label>
+          <input
+            id="user-search"
+            type="search"
+            placeholder="Type a username..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+      </div>
+
+      <section id="legend-section" class="legend" aria-label="Row color legend">
+        <span class="legend-item"
+          ><span class="legend-swatch row-participated"></span
+          >Participated</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch row-primary-only"></span>Primary, did not
+          participate</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch row-substitute-only"></span>Substitute,
+          did not participate</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch row-requested-only"></span>Requested
+          only</span
+        >
+      </section>
+
+      <div class="table-wrap">
+        <table aria-label="DS participation stats">
+          <thead id="table-head">
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Username</th>
+              <th scope="col">Requested</th>
+              <th scope="col">Primary</th>
+              <th scope="col">Substitute</th>
+              <th scope="col">Participated</th>
+            </tr>
+          </thead>
+          <tbody id="stats-body"></tbody>
+        </table>
+      </div>
+
+      <p id="status-message" class="status" role="status" aria-live="polite">
+        Loading archive manifest...
+      </p>
+    </main>
+
+    <script>
+      const languageSelect = document.getElementById("language-select");
+      languageSelect.addEventListener("change", (event) => {
+        window.location.href = event.target.value;
+      });
+
+      const archiveBasePath = "../data/ds-archive/";
+      const manifestUrl = `${archiveBasePath}manifest.json`;
+      const usernameAliasUrl = "../data/user-aliases.json";
+      const locale = "en";
+      const expectedColumns = [
+        "username",
+        "requested",
+        "primary",
+        "substitute",
+        "participated",
+      ];
+
+      const MESSAGES = {
+        loadingManifest: "Loading archive manifest...",
+        noEntriesOption: "No archive entries found",
+        manifestFailedOption: "Manifest load failed",
+        noEntriesStatus:
+          "No archive entries found. Add entries to data/ds-archive/manifest.json.",
+        manifestLoadError: (message) =>
+          `Unable to load archive manifest. ${message}`,
+        csvMissingRows: "CSV is empty or missing data rows.",
+        missingUsername: "CSV must include a Username column.",
+        loadingCsv: (label) => `Loading ${label}...`,
+        loadingCsvs: (count) => `Loading ${count} selected weeks...`,
+        csvLoadError: (message) =>
+          `Unable to load participation data. ${message}`,
+        noSelection: "Select at least one week to view stats.",
+        emptySearch: "No users match the current search.",
+        loadedSingle: (weekLabel, count) =>
+          `Loaded ${count} participant${count === 1 ? "" : "s"} for ${weekLabel}.`,
+        loadedAggregate: (weekCount, count) =>
+          `Loaded ${count} participant${count === 1 ? "" : "s"} across ${weekCount} selected weeks.`,
+        noUsernameMatches: (query, weekLabel) =>
+          `No usernames matched "${query}" for ${weekLabel}.`,
+        noUsernameMatchesAggregate: (query, weekCount) =>
+          `No usernames matched "${query}" across ${weekCount} selected weeks.`,
+        filteredSingle: (matchCount, totalCount, query, weekLabel) =>
+          `Showing ${matchCount} of ${totalCount} rows for ${weekLabel} matching "${query}".`,
+        filteredAggregate: (matchCount, totalCount, query, weekCount) =>
+          `Showing ${matchCount} of ${totalCount} rows across ${weekCount} selected weeks matching "${query}".`,
+      };
+
+      const statusMessage = document.getElementById("status-message");
+      const weekSelect = document.getElementById("week-select");
+      const userSearchInput = document.getElementById("user-search");
+      const legendSection = document.getElementById("legend-section");
+      const tableHead = document.getElementById("table-head");
+      const tableBody = document.getElementById("stats-body");
+
+      let weekEntries = [];
+      let usernameAliasLookup = new Map();
+      let usernameCanonicalDisplayLookup = new Map();
+      const weekDataCache = new Map();
+
+      let currentMode = "empty";
+      let currentRows = [];
+      let currentWeekLabel = "";
+      let currentWeekCount = 0;
+
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status";
+        if (type) {
+          statusMessage.classList.add(type);
+        }
+      }
+
+      function normalizeHeader(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]/g, "");
+      }
+
+      function parseCsvLine(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
+      }
+
+      function parseCsv(text) {
+        return text
+          .split(/\r?\n/)
+          .filter((line) => line.trim() !== "")
+          .map((line) => parseCsvLine(line).map((cell) => cell.trim()));
+      }
+
+      function parseBoolean(value) {
+        const normalized = String(value).trim().toLowerCase();
+        return (
+          normalized === "true" || normalized === "1" || normalized === "yes"
+        );
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function normalizeUsernameKey(value) {
+        return String(value).toLowerCase().trim().replace(/\s+/g, "");
+      }
+
+      function applyUsernameAliasGroups(aliasGroups) {
+        usernameAliasLookup = new Map();
+        usernameCanonicalDisplayLookup = new Map();
+
+        if (!Array.isArray(aliasGroups)) {
+          return;
+        }
+
+        aliasGroups.forEach((group) => {
+          if (!group || typeof group !== "object") {
+            return;
+          }
+
+          const canonical =
+            typeof group.canonical === "string" ? group.canonical.trim() : "";
+          if (!canonical) {
+            return;
+          }
+
+          const canonicalKey = normalizeUsernameKey(canonical);
+          usernameCanonicalDisplayLookup.set(canonicalKey, canonical);
+
+          const aliases = Array.isArray(group.aliases) ? group.aliases : [];
+          aliases.forEach((alias) => {
+            if (typeof alias !== "string") {
+              return;
+            }
+            const aliasKey = normalizeUsernameKey(alias);
+            if (aliasKey) {
+              usernameAliasLookup.set(aliasKey, canonicalKey);
+            }
+          });
+        });
+      }
+
+      function resolveUsernameKey(value) {
+        const normalizedKey = normalizeUsernameKey(value);
+        return usernameAliasLookup.get(normalizedKey) || normalizedKey;
+      }
+
+      function resolveUsernameDisplay(value) {
+        const canonicalKey = resolveUsernameKey(value);
+        return (
+          usernameCanonicalDisplayLookup.get(canonicalKey) ||
+          String(value).trim()
+        );
+      }
+
+      async function loadUsernameAliasGroups() {
+        try {
+          const response = await fetch(usernameAliasUrl, { cache: "no-store" });
+          if (!response.ok) {
+            return;
+          }
+
+          const aliasGroups = await response.json();
+          applyUsernameAliasGroups(aliasGroups);
+        } catch (error) {
+          applyUsernameAliasGroups([]);
+        }
+      }
+
+      function buildHeaderMap(headerRow) {
+        const normalizedHeader = headerRow.map((value) =>
+          normalizeHeader(value),
+        );
+        const aliases = {
+          username: ["username", "user", "name"],
+          requested: ["requested"],
+          primary: ["primary"],
+          substitute: ["substitute"],
+          participated: ["participated"],
+        };
+
+        const map = {};
+        for (const key of expectedColumns) {
+          const aliasList = aliases[key] || [key];
+          map[key] = normalizedHeader.findIndex((headerName) =>
+            aliasList.includes(headerName),
+          );
+        }
+
+        return map;
+      }
+
+      function getValue(cells, index) {
+        if (index < 0 || index >= cells.length) {
+          return "";
+        }
+        return cells[index] || "";
+      }
+
+      function getEntryLabel(entry) {
+        if (entry.labels && typeof entry.labels === "object") {
+          if (
+            typeof entry.labels[locale] === "string" &&
+            entry.labels[locale].trim() !== ""
+          ) {
+            return entry.labels[locale];
+          }
+          if (
+            typeof entry.labels.en === "string" &&
+            entry.labels.en.trim() !== ""
+          ) {
+            return entry.labels.en;
+          }
+        }
+        return typeof entry.label === "string" ? entry.label.trim() : "";
+      }
+
+      function getEntryCsvPath(entry) {
+        if (typeof entry.csv !== "string") {
+          return "";
+        }
+        const value = entry.csv.trim();
+        if (!value) {
+          return "";
+        }
+        if (/^https?:\/\//i.test(value)) {
+          return value;
+        }
+        if (value.includes("/")) {
+          return value;
+        }
+        return `${archiveBasePath}${value}`;
+      }
+
+      function isValidManifestEntry(entry) {
+        if (!entry || typeof entry !== "object") {
+          return false;
+        }
+        return getEntryLabel(entry) !== "" && getEntryCsvPath(entry) !== "";
+      }
+
+      function getSelectedEntries() {
+        return Array.from(weekSelect.selectedOptions)
+          .map((option) => weekEntries[Number(option.value)])
+          .filter(Boolean);
+      }
+
+      async function fetchWeekRoleMap(entry) {
+        const response = await fetch(entry.csvPath, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`${entry.label}: HTTP ${response.status}`);
+        }
+
+        const csvText = await response.text();
+        const parsed = parseCsv(csvText);
+        if (parsed.length < 2) {
+          throw new Error(`${entry.label}: ${MESSAGES.csvMissingRows}`);
+        }
+
+        const headerMap = buildHeaderMap(parsed[0]);
+        if (headerMap.username === -1) {
+          throw new Error(`${entry.label}: ${MESSAGES.missingUsername}`);
+        }
+
+        const roleMap = new Map();
+        for (let i = 1; i < parsed.length; i += 1) {
+          const cells = parsed[i];
+          const username = getValue(cells, headerMap.username).trim();
+          if (!username) {
+            continue;
+          }
+
+          const usernameKey = resolveUsernameKey(username);
+          roleMap.set(usernameKey, {
+            username: resolveUsernameDisplay(username),
+            usernameKey,
+            requested: parseBoolean(getValue(cells, headerMap.requested)),
+            primary: parseBoolean(getValue(cells, headerMap.primary)),
+            substitute: parseBoolean(getValue(cells, headerMap.substitute)),
+            participated: parseBoolean(getValue(cells, headerMap.participated)),
+          });
+        }
+
+        return roleMap;
+      }
+
+      function getWeekRoleMap(entry) {
+        if (!weekDataCache.has(entry.csvPath)) {
+          weekDataCache.set(entry.csvPath, fetchWeekRoleMap(entry));
+        }
+        return weekDataCache.get(entry.csvPath);
+      }
+
+      function getRowColorClass(row) {
+        if (row.participated) {
+          return "row-participated";
+        }
+        if (row.primary) {
+          return "row-primary-only";
+        }
+        if (row.substitute) {
+          return "row-substitute-only";
+        }
+        if (row.requested) {
+          return "row-requested-only";
+        }
+        return "";
+      }
+
+      function sortByUsername(rows) {
+        return rows.sort((a, b) =>
+          a.username.localeCompare(b.username, undefined, {
+            sensitivity: "base",
+          }),
+        );
+      }
+
+      function renderTableHead() {
+        if (currentMode === "aggregate") {
+          tableHead.innerHTML = `
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Username</th>
+              <th scope="col">Registered</th>
+              <th scope="col">Assigned</th>
+              <th scope="col">Participated</th>
+            </tr>
+          `;
+          return;
+        }
+
+        tableHead.innerHTML = `
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Username</th>
+            <th scope="col">Requested</th>
+            <th scope="col">Primary</th>
+            <th scope="col">Substitute</th>
+            <th scope="col">Participated</th>
+          </tr>
+        `;
+      }
+
+      function getFilteredRows() {
+        const query = userSearchInput.value.trim().toLowerCase();
+        if (!query) {
+          return currentRows;
+        }
+        return currentRows.filter((row) =>
+          row.username.toLowerCase().includes(query),
+        );
+      }
+
+      function renderBody(filteredRows) {
+        const colspan = currentMode === "aggregate" ? 5 : 6;
+
+        if (filteredRows.length === 0) {
+          tableBody.innerHTML = `<tr><td class="table-empty" colspan="${colspan}">${MESSAGES.emptySearch}</td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = filteredRows
+          .map((row, index) => {
+            if (currentMode === "aggregate") {
+              return `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td class="name-col">${escapeHtml(row.username)}</td>
+                  <td>${row.registeredCount}</td>
+                  <td>${row.assignedCount}</td>
+                  <td>${row.participatedCount}</td>
+                </tr>
+              `;
+            }
+
+            const rowClass = getRowColorClass(row);
+            return `
+              <tr class="${rowClass}">
+                <td>${index + 1}</td>
+                <td class="name-col">${escapeHtml(row.username)}</td>
+                <td>${row.requested ? "Yes" : ""}</td>
+                <td>${row.primary ? "Yes" : ""}</td>
+                <td>${row.substitute ? "Yes" : ""}</td>
+                <td>${row.participated ? "Yes" : ""}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function applySearchAndStatus() {
+        const filteredRows = getFilteredRows();
+        renderBody(filteredRows);
+
+        if (currentMode === "empty") {
+          return;
+        }
+
+        const query = userSearchInput.value.trim();
+
+        if (currentMode === "single") {
+          if (!query) {
+            setStatus(
+              MESSAGES.loadedSingle(currentWeekLabel, currentRows.length),
+              "success",
+            );
+            return;
+          }
+          if (filteredRows.length === 0) {
+            setStatus(
+              MESSAGES.noUsernameMatches(query, currentWeekLabel),
+              "error",
+            );
+            return;
+          }
+          setStatus(
+            MESSAGES.filteredSingle(
+              filteredRows.length,
+              currentRows.length,
+              query,
+              currentWeekLabel,
+            ),
+            "success",
+          );
+          return;
+        }
+
+        if (!query) {
+          setStatus(
+            MESSAGES.loadedAggregate(currentWeekCount, currentRows.length),
+            "success",
+          );
+          return;
+        }
+        if (filteredRows.length === 0) {
+          setStatus(
+            MESSAGES.noUsernameMatchesAggregate(query, currentWeekCount),
+            "error",
+          );
+          return;
+        }
+        setStatus(
+          MESSAGES.filteredAggregate(
+            filteredRows.length,
+            currentRows.length,
+            query,
+            currentWeekCount,
+          ),
+          "success",
+        );
+      }
+
+      function renderAll() {
+        renderTableHead();
+        legendSection.hidden = currentMode !== "single";
+        applySearchAndStatus();
+      }
+
+      async function refreshData() {
+        const selectedEntries = getSelectedEntries();
+
+        if (selectedEntries.length === 0) {
+          currentMode = "empty";
+          currentRows = [];
+          renderAll();
+          setStatus(MESSAGES.noSelection, "error");
+          return;
+        }
+
+        const isSingle = selectedEntries.length === 1;
+        setStatus(
+          isSingle
+            ? MESSAGES.loadingCsv(selectedEntries[0].label)
+            : MESSAGES.loadingCsvs(selectedEntries.length),
+        );
+
+        try {
+          const roleMaps = await Promise.all(
+            selectedEntries.map((entry) => getWeekRoleMap(entry)),
+          );
+
+          if (isSingle) {
+            const rows = sortByUsername(
+              Array.from(roleMaps[0].values()).filter(
+                (row) =>
+                  row.requested ||
+                  row.primary ||
+                  row.substitute ||
+                  row.participated,
+              ),
+            );
+
+            currentRows = rows;
+            currentMode = "single";
+            currentWeekLabel = selectedEntries[0].label;
+          } else {
+            const aggregateByKey = new Map();
+
+            roleMaps.forEach((roleMap) => {
+              roleMap.forEach((row, usernameKey) => {
+                if (!aggregateByKey.has(usernameKey)) {
+                  aggregateByKey.set(usernameKey, {
+                    username: row.username,
+                    usernameKey,
+                    registeredCount: 0,
+                    assignedCount: 0,
+                    participatedCount: 0,
+                  });
+                }
+
+                const aggregate = aggregateByKey.get(usernameKey);
+                if (row.requested) {
+                  aggregate.registeredCount += 1;
+                }
+                if (row.primary || row.substitute) {
+                  aggregate.assignedCount += 1;
+                }
+                if (row.participated) {
+                  aggregate.participatedCount += 1;
+                }
+              });
+            });
+
+            const rows = sortByUsername(
+              Array.from(aggregateByKey.values()).filter(
+                (row) =>
+                  row.registeredCount > 0 ||
+                  row.assignedCount > 0 ||
+                  row.participatedCount > 0,
+              ),
+            );
+
+            currentRows = rows;
+            currentMode = "aggregate";
+            currentWeekCount = selectedEntries.length;
+          }
+
+          renderAll();
+        } catch (error) {
+          currentRows = [];
+          currentMode = "empty";
+          renderAll();
+          setStatus(MESSAGES.csvLoadError(error.message), "error");
+        }
+      }
+
+      async function init() {
+        setStatus(MESSAGES.loadingManifest);
+
+        try {
+          await loadUsernameAliasGroups();
+
+          const response = await fetch(manifestUrl, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const manifest = await response.json();
+          if (!Array.isArray(manifest)) {
+            throw new Error("Manifest must be an array of entries.");
+          }
+
+          weekEntries = manifest.filter(isValidManifestEntry).map((entry) => ({
+            label: getEntryLabel(entry),
+            csvPath: getEntryCsvPath(entry),
+          }));
+
+          if (weekEntries.length === 0) {
+            weekSelect.innerHTML = `<option value="">${MESSAGES.noEntriesOption}</option>`;
+            weekSelect.disabled = true;
+            setStatus(MESSAGES.noEntriesStatus, "error");
+            return;
+          }
+
+          weekSelect.innerHTML = "";
+          weekEntries.forEach((entry, index) => {
+            const option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = entry.label;
+            weekSelect.appendChild(option);
+          });
+          weekSelect.disabled = false;
+          weekSelect.options[0].selected = true;
+
+          await refreshData();
+        } catch (error) {
+          weekSelect.innerHTML = `<option value="">${MESSAGES.manifestFailedOption}</option>`;
+          weekSelect.disabled = true;
+          setStatus(MESSAGES.manifestLoadError(error.message), "error");
+        }
+      }
+
+      weekSelect.addEventListener("change", () => {
+        refreshData();
+      });
+
+      userSearchInput.addEventListener("input", () => {
+        applySearchAndStatus();
+      });
+
+      init();
+    </script>
+  </body>
+</html>
