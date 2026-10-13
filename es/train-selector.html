@@ -197,7 +197,7 @@
         </button>
         <label class="filter-toggle" for="range-filter-checkbox">
           <input id="range-filter-checkbox" type="checkbox" disabled />
-          Construcción, Tecnología, Héroe: 7.2M a 10M
+          Construcción, Tecnología, Héroe: 7.2M a 12M
         </label>
       </div>
 
@@ -306,7 +306,7 @@
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
       const CONDUCTOR_COOLDOWN_DAYS = 14;
       const SCORE_RANGE_MIN = 7200000;
-      const SCORE_RANGE_MAX = 10000000;
+      const SCORE_RANGE_MAX = 12000000;
       const LOCALE = "es-ES";
       const MESSAGES = {
         loading: "Cargando datos del tracker...",
@@ -321,11 +321,11 @@
           "El archivo de exclusión no es válido. Se esperaba un objeto JSON con un arreglo exclude o ignored.",
         notEnoughTopPlayers: (isFiltered) =>
           isFiltered
-            ? "Se necesitan al menos 15 jugadores elegibles con el filtro de 7.2M-10M en Construcción/Tecnología/Héroe activado."
+            ? "Se necesitan al menos 15 jugadores elegibles con el filtro de 7.2M-12M en Construcción/Tecnología/Héroe activado."
             : "Se necesitan al menos 15 jugadores elegibles después de las exclusiones y el enfriamiento de 14 días para conductor.",
         ready: (rowCount, isFiltered) =>
           isFiltered
-            ? `Se cargaron ${rowCount} jugadores elegibles del VS Tracker con el filtro de 7.2M-10M en Construcción/Tecnología/Héroe. Haz clic en Generar equipos aleatorios para elegir 5 conductores, 5 VIP y 5 suplentes.`
+            ? `Se cargaron ${rowCount} jugadores elegibles del VS Tracker con el filtro de 7.2M-12M en Construcción/Tecnología/Héroe. Haz clic en Generar equipos aleatorios para elegir 5 conductores, 5 VIP y 5 suplentes.`
             : `Se cargaron ${rowCount} jugadores elegibles del VS Tracker después de las exclusiones. Haz clic en Generar equipos aleatorios para elegir 5 conductores, 5 VIP y 5 suplentes.`,
         randomDone:
           "Equipos aleatorios generados. Usa Exportar CSV para descargar la selección actual.",

@@ -197,7 +197,7 @@
         </button>
         <label class="filter-toggle" for="range-filter-checkbox">
           <input id="range-filter-checkbox" type="checkbox" disabled />
-          Construction, Tech, Hero: 7.2M to 10M
+          Construction, Tech, Hero: 7.2M to 12M
         </label>
       </div>
 
@@ -306,7 +306,7 @@
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
       const CONDUCTOR_COOLDOWN_DAYS = 14;
       const SCORE_RANGE_MIN = 7200000;
-      const SCORE_RANGE_MAX = 10000000;
+      const SCORE_RANGE_MAX = 12000000;
       const LOCALE = "en-US";
       const MESSAGES = {
         loading: "Loading tracker data...",
@@ -321,11 +321,11 @@
           "Ignore file is invalid. Expected JSON object with an exclude or ignored array.",
         notEnoughTopPlayers: (isFiltered) =>
           isFiltered
-            ? "Need at least 15 eligible players with the 7.2M-10M Construction/Tech/Hero filter enabled."
+            ? "Need at least 15 eligible players with the 7.2M-12M Construction/Tech/Hero filter enabled."
             : "Need at least 15 eligible players after exclusions and 14-day conductor cooldown.",
         ready: (rowCount, isFiltered) =>
           isFiltered
-            ? `Loaded ${rowCount} eligible players from VS Tracker with the 7.2M-10M Construction/Tech/Hero filter. Click Generate Random Teams to pick 5 Driver, 5 VIP, and 5 Substitute entries.`
+            ? `Loaded ${rowCount} eligible players from VS Tracker with the 7.2M-12M Construction/Tech/Hero filter. Click Generate Random Teams to pick 5 Driver, 5 VIP, and 5 Substitute entries.`
             : `Loaded top ${rowCount} eligible players from VS Tracker after exclusions. Click Generate Random Teams to pick 5 Driver, 5 VIP, and 5 Substitute entries.`,
         randomDone:
           "Random teams generated. Use Export CSV to download the current selection.",

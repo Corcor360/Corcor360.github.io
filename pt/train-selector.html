@@ -197,7 +197,7 @@
         </button>
         <label class="filter-toggle" for="range-filter-checkbox">
           <input id="range-filter-checkbox" type="checkbox" disabled />
-          Construção, Tecnologia, Herói: 7.2M a 10M
+          Construção, Tecnologia, Herói: 7.2M a 12M
         </label>
       </div>
 
@@ -306,7 +306,7 @@
       const DAY_IN_MS = 24 * 60 * 60 * 1000;
       const CONDUCTOR_COOLDOWN_DAYS = 14;
       const SCORE_RANGE_MIN = 7200000;
-      const SCORE_RANGE_MAX = 10000000;
+      const SCORE_RANGE_MAX = 12000000;
       const LOCALE = "pt-BR";
       const MESSAGES = {
         loading: "Carregando dados do tracker...",
@@ -321,11 +321,11 @@
           "O arquivo de exclusão é inválido. Era esperado um objeto JSON com um array exclude ou ignored.",
         notEnoughTopPlayers: (isFiltered) =>
           isFiltered
-            ? "São necessários pelo menos 15 jogadores elegíveis com o filtro de 7.2M-10M em Construção/Tecnologia/Herói ativado."
+            ? "São necessários pelo menos 15 jogadores elegíveis com o filtro de 7.2M-12M em Construção/Tecnologia/Herói ativado."
             : "São necessários pelo menos 15 jogadores elegíveis após exclusões e intervalo de 14 dias para condutor.",
         ready: (rowCount, isFiltered) =>
           isFiltered
-            ? `Carregados ${rowCount} jogadores elegíveis do VS Tracker com o filtro de 7.2M-10M em Construção/Tecnologia/Herói. Clique em Gerar equipes aleatórias para escolher 5 condutores, 5 VIP e 5 substitutos.`
+            ? `Carregados ${rowCount} jogadores elegíveis do VS Tracker com o filtro de 7.2M-12M em Construção/Tecnologia/Herói. Clique em Gerar equipes aleatórias para escolher 5 condutores, 5 VIP e 5 substitutos.`
             : `Carregados os ${rowCount} melhores jogadores elegíveis do VS Tracker após as exclusões. Clique em Gerar equipes aleatórias para escolher 5 condutores, 5 VIP e 5 substitutos.`,
         randomDone:
           "Equipes aleatórias geradas. Use Exportar CSV para baixar a seleção atual.",
