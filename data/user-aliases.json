@@ -29,7 +29,12 @@
   },
   {
     "canonical": "Lunitunn",
-    "aliases": ["Lunitunn", "Evil Bichita-removed :'(", "Lunituns Inferno"]
+    "aliases": [
+      "Lunitunn",
+      "Evil Bichita-removed :'(",
+      "Lunituns Inferno",
+      "Evil Bichita (Lunitunn)"
+    ]
   },
   {
     "canonical": "Burtis",
@@ -132,15 +137,15 @@
     "aliases": ["TattedMechanism", "TattedMech"]
   },
   {
-    "canonical":"N03J13",
-    "aliases":["N03J13", "NO3J13"]
+    "canonical": "N03J13",
+    "aliases": ["N03J13", "NO3J13"]
   },
   {
-    "canonical":"Guilherme DellaG",
-    "aliases":["Guilherme DellaG", "Guilherme Della"]
+    "canonical": "Guilherme DellaG",
+    "aliases": ["Guilherme DellaG", "Guilherme Della"]
   },
   {
-    "canonical":"JayGeee",
-    "aliases":["JayGeee", "JayGee"]
+    "canonical": "JayGeee",
+    "aliases": ["JayGeee", "JayGee"]
   }
 ]
